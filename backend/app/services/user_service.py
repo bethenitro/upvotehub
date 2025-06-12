@@ -1,0 +1,196 @@
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any, List
+from bson import ObjectId
+from ..config.database import Database, Collections
+from ..utils.logger import logger
+from ..models.user import UserInDB, UserCreate, AccountActivity
+from ..models.payment import PaymentInDB
+from ..models.order import OrderInDB, AutoOrderInDB
+
+class UserService:
+    @staticmethod
+    async def create_user(user_data: UserCreate) -> UserInDB:
+        db = Database.get_db()
+        
+        # Check if user already exists
+        existing_user = await db[Collections.USERS].find_one({"email": user_data.email})
+        if existing_user:
+            raise ValueError("User with this email already exists")
+        
+        # Create user document
+        user = UserInDB(
+            username=user_data.username,
+            email=user_data.email,
+            credits=user_data.credits,
+            hashed_password=user_data.password  # In production, hash the password
+        )
+        
+        # Insert into database
+        result = await db[Collections.USERS].insert_one(user.dict(by_alias=True))
+        user.id = result.inserted_id
+        
+        logger.info("user_created", user_id=str(user.id), email=user.email)
+        return user
+
+    @staticmethod
+    async def get_user(user_id: str) -> Optional[UserInDB]:
+        db = Database.get_db()
+        user_data = await db[Collections.USERS].find_one({"_id": ObjectId(user_id)})
+        if user_data:
+            return UserInDB(**user_data)
+        return None
+
+    @staticmethod
+    async def get_user_by_email(email: str) -> Optional[UserInDB]:
+        db = Database.get_db()
+        user_data = await db[Collections.USERS].find_one({"email": email})
+        if user_data:
+            return UserInDB(**user_data)
+        return None
+
+    @staticmethod
+    async def update_credits(user_id: str, amount: float) -> bool:
+        db = Database.get_db()
+        result = await db[Collections.USERS].update_one(
+            {"_id": ObjectId(user_id)},
+            {"$inc": {"credits": amount}}
+        )
+        return result.modified_count > 0
+
+    @staticmethod
+    async def get_account_activity(
+        user_id: str,
+        start_date: datetime,
+        end_date: Optional[datetime] = None
+    ) -> List[AccountActivity]:
+        """Get user's account activity for a date range"""
+        try:
+            db = Database.get_db()
+            if end_date is None:
+                end_date = datetime.utcnow()
+
+            # Get all orders in the date range
+            orders = await db[Collections.ORDERS].find({
+                "user_id": user_id,
+                "created_at": {"$gte": start_date, "$lte": end_date}
+            }).to_list(None)
+
+            # Get all payments in the date range
+            payments = await db[Collections.PAYMENTS].find({
+                "user_id": user_id,
+                "created_at": {"$gte": start_date, "$lte": end_date}
+            }).to_list(None)
+
+            # Group by date
+            activity_by_date = {}
+            current_date = start_date
+            while current_date <= end_date:
+                date_key = current_date.strftime("%Y-%m-%d")
+                activity_by_date[date_key] = {
+                    "orders": 0,
+                    "credits": 0.0
+                }
+                current_date += timedelta(days=1)
+
+            # Count orders per day
+            for order in orders:
+                date_key = order["created_at"].strftime("%Y-%m-%d")
+                activity_by_date[date_key]["orders"] += 1
+
+            # Sum credits per day
+            for payment in payments:
+                if payment["status"] == "completed":
+                    date_key = payment["created_at"].strftime("%Y-%m-%d")
+                    activity_by_date[date_key]["credits"] += payment["amount"]
+
+            # Convert to AccountActivity objects
+            activities = []
+            for date_key, data in activity_by_date.items():
+                activity = AccountActivity(
+                    id=str(ObjectId()),
+                    user_id=user_id,
+                    date=datetime.strptime(date_key, "%Y-%m-%d"),
+                    orders=data["orders"],
+                    credits=data["credits"]
+                )
+                activities.append(activity)
+
+            return activities
+
+        except Exception as e:
+            logger.error("get_account_activity_failed", error=str(e))
+            raise
+
+    @staticmethod
+    async def update_user_stats(user_id: str):
+        """Update user's order statistics"""
+        try:
+            db = Database.get_db()
+            
+            # Get order counts
+            total_orders = await db[Collections.ORDERS].count_documents({
+                "user_id": user_id
+            })
+            
+            active_orders = await db[Collections.ORDERS].count_documents({
+                "user_id": user_id,
+                "status": {"$in": ["pending", "in-progress"]}
+            })
+            
+            completed_orders = await db[Collections.ORDERS].count_documents({
+                "user_id": user_id,
+                "status": "completed"
+            })
+
+            # Update user stats
+            await db[Collections.USERS].update_one(
+                {"_id": ObjectId(user_id)},
+                {
+                    "$set": {
+                        "stats": {
+                            "total_orders": total_orders,
+                            "active_orders": active_orders,
+                            "completed_orders": completed_orders
+                        }
+                    }
+                }
+            )
+
+            logger.info("user_stats_updated",
+                user_id=user_id,
+                total_orders=total_orders,
+                active_orders=active_orders,
+                completed_orders=completed_orders
+            )
+
+        except Exception as e:
+            logger.error("update_user_stats_failed", error=str(e))
+            raise
+
+    @staticmethod
+    async def create_payment(user_id: str, payment_data: Dict[str, Any]) -> PaymentInDB:
+        db = Database.get_db()
+        
+        # Create payment document
+        payment = PaymentInDB(
+            user_id=ObjectId(user_id),
+            amount=payment_data["amount"],
+            method=payment_data["method"],
+            description=payment_data["description"],
+            payment_details=payment_data["payment_details"]
+        )
+        
+        # Insert into database
+        result = await db[Collections.PAYMENTS].insert_one(payment.dict(by_alias=True))
+        payment.id = result.inserted_id
+        
+        # Update user credits
+        await UserService.update_credits(user_id, payment_data["amount"])
+        
+        logger.info("payment_created",
+            payment_id=str(payment.id),
+            user_id=user_id,
+            amount=payment_data["amount"]
+        )
+        
+        return payment 
