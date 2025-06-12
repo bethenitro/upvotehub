@@ -1,8 +1,10 @@
 from datetime import datetime
-from typing import List, Dict, Any
-from ..models.payment import Payment, PaymentCreate, PaymentMethod
+from typing import List, Dict, Any, Tuple
+from fastapi import HTTPException, status
+from ..models.payment import Payment, PaymentCreate, PaymentMethod, TopUpRequest, PaymentInDB
 from ..config.database import Database, Collections
 from ..utils.logger import logger
+from .user_service import UserService # To update user credits
 from ..utils.exceptions import PaymentProcessingError, InvalidPaymentMethodError
 from bson import ObjectId
 
@@ -144,4 +146,79 @@ class PaymentService:
 
         except Exception as e:
             logger.error("set_default_payment_method_failed", error=str(e))
-            raise PaymentProcessingError(str(e)) 
+            raise PaymentProcessingError(str(e))
+
+    @staticmethod
+    async def process_top_up(user_id: str, top_up_request: TopUpRequest) -> Dict[str, Any]:
+        """Process a top-up request for a user."""
+        db = Database.get_db()
+        logger.info(
+            "top_up_attempt",
+            user_id=user_id,
+            amount=top_up_request.amount,
+            method=top_up_request.payment_method
+        )
+
+        # Mock payment processing logic
+        # In a real scenario, integrate with a payment gateway (Stripe, PayPal, etc.)
+        # For now, we'll assume payment is successful if basic validation passed in the route.
+        # Some basic checks can be here too:
+        if top_up_request.amount <= 0:
+            logger.warn("top_up_invalid_amount", user_id=user_id, amount=top_up_request.amount)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be positive.")
+
+        # TODO: Add more specific validation for payment_details based on payment_method if needed.
+
+        # Record the payment/transaction
+        payment_record = PaymentInDB(
+            id=str(ObjectId()), # Generate new ID for the payment record
+            user_id=user_id,
+            amount=top_up_request.amount,
+            method=top_up_request.payment_method,
+            status="completed", # Assume direct completion for mock
+            payment_details=top_up_request.payment_details,
+            created_at=datetime.utcnow(),
+            completed_at=datetime.utcnow(),
+            description=f"Account top-up of {top_up_request.amount} credits."
+        )
+
+        # Pydantic v2 uses model_dump, v1 uses dict
+        payment_dict_for_db = payment_record.model_dump(by_alias=True)
+
+
+        insert_result = await db[Collections.PAYMENTS].insert_one(payment_dict_for_db)
+        transaction_id = str(insert_result.inserted_id) # Use the DB record ID as transaction ID
+
+        # Update user's credit balance
+        credits_updated = await UserService.update_credits(user_id, top_up_request.amount)
+        if not credits_updated:
+            # This is a critical issue: payment recorded but credits not updated.
+            # Needs robust handling in a real system (e.g., compensation transaction, admin alert).
+            logger.error(
+                "top_up_credits_update_failed",
+                user_id=user_id,
+                amount=top_up_request.amount,
+                transaction_id=transaction_id
+            )
+            # Potentially try to mark payment as failed or needs investigation
+            await db[Collections.PAYMENTS].update_one(
+                {"_id": insert_result.inserted_id},
+                {"$set": {"status": "failed", "error_message": "Credits update failed after payment."}}
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update user credits after payment. Please contact support."
+            )
+
+        logger.info(
+            "top_up_successful",
+            user_id=user_id,
+            amount=top_up_request.amount,
+            transaction_id=transaction_id
+        )
+
+        return {
+            "message": "Top-up successful.",
+            "transaction_id": transaction_id,
+            "credited_amount": top_up_request.amount
+        }

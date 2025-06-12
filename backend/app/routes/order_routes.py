@@ -93,7 +93,34 @@ async def resume_auto_order(
     except Exception as e:
         raise AutoOrderError(str(e))
 
+@router.post("/auto/{order_id}/cancel", response_model=dict)
+async def cancel_auto_order_route(
+    order_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Cancel an auto order."""
+    try:
+        success = await OrderService.cancel_auto_order(user_id=current_user.id, order_id=order_id)
+        if success:
+            return {"message": "Auto order cancelled successfully."}
+        else:
+            # This could mean the order was not found or didn't belong to the user,
+            # or was already in a state that couldn't be cancelled.
+            # OrderService.cancel_auto_order might need to be more granular in its return or exceptions.
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Auto order not found or could not be cancelled."
+            )
+    except AutoOrderError as e: # Catch specific errors from the service if defined
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        # Log the exception e for debugging
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {str(e)}"
+        )
+
 @router.get("/payment-methods", response_model=List[PaymentMethod])
 async def get_payment_methods(current_user: User = Depends(get_current_user)):
     """Get user's payment methods"""
-    return await PaymentService.get_user_payment_methods(current_user.id) 
+    return await PaymentService.get_user_payment_methods(current_user.id)

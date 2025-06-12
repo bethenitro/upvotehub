@@ -1,7 +1,9 @@
 
-import React, { useState } from 'react';
-import { useApp } from '@/context/AppContext';
+import React, { useState, useEffect } from 'react'; // Added useEffect
+import { useAuth } from '../context/AuthContext'; // Changed from useApp
 import { toast } from "@/components/ui/use-toast";
+import { useMutation, useQueryClient } from '@tanstack/react-query'; // Added imports
+import { api } from '@/services/api'; // Import api service
 import {
   Card,
   CardContent,
@@ -23,35 +25,111 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CreditCard, Loader2, CheckCircle } from 'lucide-react';
 
+interface TopUpPayload {
+  amount: number;
+  paymentMethod: string;
+  paymentDetails: any; // Consider defining a more specific type for paymentDetails
+}
+
+// Assuming API response structure
+interface TopUpResponse {
+  success: boolean;
+  transaction: any; // Define specific type if known
+  message?: string;
+}
+
 const TopUpAccount = () => {
-  const { user, topUpAccount, refreshUser } = useApp();
-  
-  // Form state
-  const [amount, setAmount] = useState<number>(50);
+  const { user } = useAuth(); // Changed from useApp
+  const queryClient = useQueryClient();
+
+  const [amount, setAmount] = useState<number>(50); // Initial selected amount
+  const [displayAmount, setDisplayAmount] = useState<number>(50); // Amount shown in summary, includes bonus
   const [paymentMethod, setPaymentMethod] = useState('credit_card');
   const [cardNumber, setCardNumber] = useState('');
   const [cardName, setCardName] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvc, setCardCvc] = useState('');
   
-  // UI state
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
+  // UI state - isSubmitting and success will be from useMutation
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   
   // Predefined amounts
   const creditPackages = [
-    { amount: 20, label: '20 credits', bonus: 0 },
-    { amount: 50, label: '50 credits', bonus: 5 },
-    { amount: 100, label: '100 credits', bonus: 15 },
-    { amount: 250, label: '250 credits', bonus: 50 },
+    { amount: 20, label: '20 credits', bonus: 0, price: 20 },
+    { amount: 50, label: '50 credits', bonus: 5, price: 50 },
+    { amount: 100, label: '100 credits', bonus: 15, price: 100 },
+    { amount: 250, label: '250 credits', bonus: 50, price: 250 },
   ];
+
+  const selectedPackage = creditPackages.find(p => p.amount === amount);
+  const currentBonus = selectedPackage?.bonus || 0;
+  const currentPrice = selectedPackage?.price || amount;
+
+
+  const {
+    mutate: topUpMutation,
+    isLoading: isSubmitting,
+    // isSuccess: mutationIsSuccess, // Can use this if not managing temporary success message
+  } = useMutation<TopUpResponse, Error, TopUpPayload>(
+    (payload) => api.user.topUpAccount(payload.amount, payload.paymentMethod, payload.paymentDetails),
+    {
+      onSuccess: (data) => {
+        if (data.success) {
+          setShowSuccessMessage(true);
+          toast({
+            title: "Payment Successful!",
+            description: `${displayAmount} credits have been added to your account.`,
+          });
+          // Reset form
+          setCardNumber('');
+          setCardName('');
+          setCardExpiry('');
+          setCardCvc('');
+
+          queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+          queryClient.invalidateQueries({ queryKey: ['userActivity'] });
+
+        } else {
+          toast({
+            title: "Payment Failed",
+            description: data.message || "There was an issue processing your payment.",
+            variant: "destructive"
+          });
+        }
+      },
+      onError: (error) => {
+        toast({
+          title: "Payment Failed",
+          description: error.message || "There was an issue processing your payment.",
+          variant: "destructive"
+        });
+        console.error('Payment failed:', error);
+      },
+    }
+  );
+
+  useEffect(() => {
+    // Update display amount (including bonus) when base amount changes
+    const pkg = creditPackages.find(p => p.amount === amount);
+    setDisplayAmount(amount + (pkg?.bonus || 0));
+  }, [amount]);
   
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showSuccessMessage) {
+      timer = setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 3000); // Show success message for 3 seconds
+    }
+    return () => clearTimeout(timer);
+  }, [showSuccessMessage]);
+
+
   // Handle custom amount input
   const handleCustomAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
-    if (!isNaN(value) && value >= 0) {
-      setAmount(value);
-    }
+    const newAmount = !isNaN(value) && value >= 1 ? value : 1; // Min custom amount 1
+    setAmount(newAmount);
   };
   
   // Format card number with spaces
@@ -88,10 +166,10 @@ const TopUpAccount = () => {
     e.preventDefault();
     
     // Basic validation
-    if (amount <= 0) {
+    if (currentPrice <= 0) {
       toast({
         title: "Invalid Amount",
-        description: "Please enter a valid amount",
+        description: "Please enter or select a valid amount",
         variant: "destructive"
       });
       return;
@@ -99,10 +177,10 @@ const TopUpAccount = () => {
     
     if (paymentMethod === 'credit_card') {
       // Basic credit card validation
-      if (cardNumber.replace(/\s+/g, '').length !== 16) {
+      if (cardNumber.replace(/\s+/g, '').length < 13 || cardNumber.replace(/\s+/g, '').length > 16) { // Common card lengths
         toast({
           title: "Invalid Card Number",
-          description: "Please enter a valid 16-digit card number",
+          description: "Please enter a valid card number",
           variant: "destructive"
         });
         return;
@@ -117,7 +195,7 @@ const TopUpAccount = () => {
         return;
       }
       
-      if (cardExpiry.length !== 5) {
+      if (cardExpiry.length !== 5 || !/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardExpiry)) {
         toast({
           title: "Invalid Expiry Date",
           description: "Please enter a valid expiry date (MM/YY)",
@@ -126,63 +204,30 @@ const TopUpAccount = () => {
         return;
       }
       
-      if (cardCvc.length !== 3) {
+      if (cardCvc.length !== 3 && cardCvc.length !== 4) { // CVC can be 3 or 4 digits
         toast({
           title: "Invalid CVC",
-          description: "Please enter a valid 3-digit CVC",
+          description: "Please enter a valid 3 or 4-digit CVC",
           variant: "destructive"
         });
         return;
       }
     }
     
-    try {
-      setIsSubmitting(true);
-      
-      // Calculate bonus credits if applicable
-      let totalAmount = amount;
-      const package_ = creditPackages.find(p => p.amount === amount);
-      if (package_) {
-        totalAmount += package_.bonus;
-      }
-      
-      // Create payment details object based on method
-      const paymentDetails = paymentMethod === 'credit_card' 
-        ? {
-            cardNumber: cardNumber.replace(/\s+/g, ''),
-            cardName,
-            cardExpiry,
-            cardCvc,
-          } 
-        : {};
-      
-      const success = await topUpAccount(totalAmount, paymentMethod, paymentDetails);
-      
-      if (success) {
-        setSuccess(true);
-        // Reset form
-        setCardNumber('');
-        setCardName('');
-        setCardExpiry('');
-        setCardCvc('');
-        
-        // Update user data
-        await refreshUser();
-        
-        setTimeout(() => {
-          setSuccess(false);
-        }, 3000);
-      }
-    } catch (error) {
-      toast({
-        title: "Payment Failed",
-        description: "There was an issue processing your payment.",
-        variant: "destructive"
-      });
-      console.error('Payment failed:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    const paymentDetails = paymentMethod === 'credit_card'
+      ? {
+          cardNumber: cardNumber.replace(/\s+/g, ''),
+          cardName,
+          cardExpiry,
+          cardCvc,
+        }
+      : {}; // Add details for PayPal, Crypto if needed, or handle in backend
+
+    topUpMutation({
+      amount: displayAmount, // Send total amount including bonus
+      paymentMethod,
+      paymentDetails
+    });
   };
   
   return (
@@ -199,16 +244,16 @@ const TopUpAccount = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {success ? (
+              {showSuccessMessage ? (
                 <div className="flex flex-col items-center justify-center py-8">
                   <div className="bg-green-100 text-green-800 rounded-full p-3 mb-4">
                     <CheckCircle className="h-12 w-12" />
                   </div>
                   <h3 className="text-xl font-bold mb-2">Payment Successful!</h3>
                   <p className="text-gray-500 mb-4">
-                    {amount} credits have been added to your account.
+                    {displayAmount} credits have been added to your account.
                   </p>
-                  <Button onClick={() => setSuccess(false)}>Make another payment</Button>
+                  <Button onClick={() => setShowSuccessMessage(false)}>Make another payment</Button>
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -219,14 +264,14 @@ const TopUpAccount = () => {
                         <div 
                           key={pkg.amount}
                           className={`border rounded-md p-4 text-center cursor-pointer transition-colors ${
-                            amount === pkg.amount 
+                            amount === pkg.amount // base amount for selection
                               ? 'border-upvote-primary bg-upvote-primary bg-opacity-5' 
                               : 'border-gray-200 hover:border-upvote-primary'
                           }`}
-                          onClick={() => setAmount(pkg.amount)}
+                          onClick={() => setAmount(pkg.amount)} // Set base amount
                         >
                           <div className="font-bold text-lg mb-1">{pkg.amount} credits</div>
-                          <div className="text-sm text-gray-500">${pkg.amount.toFixed(2)}</div>
+                          <div className="text-sm text-gray-500">${pkg.price.toFixed(2)}</div>
                           {pkg.bonus > 0 && (
                             <div className="mt-2 text-xs bg-green-100 text-green-800 rounded-full px-2 py-1">
                               +{pkg.bonus} bonus
@@ -245,12 +290,11 @@ const TopUpAccount = () => {
                         <Input
                           id="custom-amount"
                           type="number"
-                          min="1"
+                          min="1" // Min custom amount
                           step="1"
                           value={
-                            creditPackages.some(pkg => pkg.amount === amount) 
-                              ? '' 
-                              : amount
+                            // Clear custom input if a package is selected, otherwise show current custom amount
+                            selectedPackage ? '' : amount
                           }
                           onChange={handleCustomAmountChange}
                           placeholder="Custom amount"
@@ -279,7 +323,7 @@ const TopUpAccount = () => {
                               value={cardNumber}
                               onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
                               placeholder="0000 0000 0000 0000"
-                              maxLength={19}
+                              maxLength={19} // Max length for display with spaces
                             />
                             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                               <CreditCard className="h-4 w-4 text-gray-400" />
@@ -314,9 +358,9 @@ const TopUpAccount = () => {
                             <Input
                               id="card-cvc"
                               value={cardCvc}
-                              onChange={(e) => setCardCvc(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
+                              onChange={(e) => setCardCvc(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))} // CVC up to 4 digits
                               placeholder="123"
-                              maxLength={3}
+                              maxLength={4} // Max CVC length
                               type="password"
                             />
                           </div>
@@ -345,11 +389,11 @@ const TopUpAccount = () => {
                 </div>
               )}
             </CardContent>
-            {!success && (
+            {!showSuccessMessage && ( // Hide footer when success message is shown
               <CardFooter className="flex justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Total:</p>
-                  <p className="text-xl font-bold">${amount.toFixed(2)}</p>
+                  <p className="text-xl font-bold">${currentPrice.toFixed(2)}</p>
                 </div>
                 <Button onClick={handleSubmit} disabled={isSubmitting}>
                   {isSubmitting ? (
@@ -375,42 +419,42 @@ const TopUpAccount = () => {
               <div className="bg-gray-50 p-4 rounded-md">
                 <div className="flex justify-between mb-2">
                   <span className="text-gray-500">Credits to purchase:</span>
-                  <span>{amount}</span>
+                  <span>{amount}</span> {/* Base amount */}
                 </div>
                 
-                {creditPackages.find(p => p.amount === amount)?.bonus > 0 && (
+                {currentBonus > 0 && (
                   <div className="flex justify-between mb-2 text-green-600">
                     <span>Bonus credits:</span>
-                    <span>+{creditPackages.find(p => p.amount === amount)?.bonus}</span>
+                    <span>+{currentBonus}</span>
                   </div>
                 )}
                 
                 <div className="flex justify-between mb-2">
                   <span className="text-gray-500">Price per credit:</span>
-                  <span>$1.00</span>
+                  <span>$1.00</span> {/* Assuming $1 per base credit, adjust if packages change this */}
                 </div>
                 
                 <hr className="my-2" />
                 
                 <div className="flex justify-between font-medium">
                   <span>Total price:</span>
-                  <span>${amount.toFixed(2)}</span>
+                  <span>${currentPrice.toFixed(2)}</span>
                 </div>
               </div>
               
               <div className="bg-gray-50 p-4 rounded-md">
                 <div className="flex justify-between mb-2">
                   <span className="text-gray-500">Current balance:</span>
-                  <span>{user?.credits.toFixed(2) || 0} credits</span>
+                  <span>{user?.credits?.toFixed(2) || '0.00'} credits</span>
                 </div>
                 
                 <div className="flex justify-between mb-2 text-green-600">
                   <span>Credits to add:</span>
                   <span>
-                    +{amount}
-                    {creditPackages.find(p => p.amount === amount)?.bonus > 0 && (
+                    +{displayAmount} {/* Total credits including bonus */}
+                    {currentBonus > 0 && (
                       <span className="text-xs ml-1">
-                        (+{creditPackages.find(p => p.amount === amount)?.bonus} bonus)
+                        ({amount} + {currentBonus} bonus)
                       </span>
                     )}
                   </span>
@@ -422,8 +466,8 @@ const TopUpAccount = () => {
                   <span>New balance:</span>
                   <span>
                     {user ? (
-                      user.credits + amount + (creditPackages.find(p => p.amount === amount)?.bonus || 0)
-                    ).toFixed(2) : '0'} credits
+                      user.credits + displayAmount
+                    ).toFixed(2) : displayAmount.toFixed(2)} credits
                   </span>
                 </div>
               </div>

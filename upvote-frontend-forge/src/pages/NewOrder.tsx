@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
-import { useApp } from '@/context/AppContext';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext'; // Changed from useApp
 import { api } from '@/services/api';
 import { toast } from "@/components/ui/use-toast";
+import { useMutation, useQueryClient } from '@tanstack/react-query'; // Added imports
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,27 +11,76 @@ import { Slider } from '@/components/ui/slider';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+interface CreateOrderPayload {
+  redditUrl: string;
+  upvotes: number;
+}
+
+// Assuming the API response for createOrder looks like this:
+interface CreateOrderResponse {
+  success: boolean;
+  order: any; // Replace 'any' with a proper Order type if available
+  message?: string;
+}
+
 const NewOrder = () => {
-  const { user, refreshUser } = useApp();
+  const { user } = useAuth(); // Changed from useApp
   const navigate = useNavigate();
+  const queryClient = useQueryClient(); // For cache invalidation
+
   const [redditUrl, setRedditUrl] = useState('');
   const [upvotes, setUpvotes] = useState(20);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [orderSuccess, setOrderSuccess] = useState(false);
+  // Removed isSubmitting and orderSuccess, useMutation will provide these
   
-  // Calculate cost based on upvotes (0.8 credits per upvote)
   const cost = upvotes * 0.8;
-  
-  // Check if user has enough credits
   const hasEnoughCredits = user && user.credits >= cost;
+
+  const {
+    mutate: createOrderMutation,
+    isLoading: isSubmitting, // Replaces isSubmitting state
+    isSuccess: orderSuccess,  // Replaces orderSuccess state
+    // error: submissionError, // Can be used for more specific error display if needed
+  } = useMutation<CreateOrderResponse, Error, CreateOrderPayload>(
+    (orderData) => api.orders.createOrder(orderData),
+    {
+      onSuccess: (data) => {
+        if (data.success) {
+          toast({
+            title: "Order Placed!",
+            description: "Your order has been successfully placed.",
+          });
+          // Invalidate queries to refetch user (for credits) and orders
+          queryClient.invalidateQueries({ queryKey: ['currentUser'] }); // Key used by AuthContext
+          queryClient.invalidateQueries({ queryKey: ['userActivity'] });
+          queryClient.invalidateQueries({ queryKey: ['orders'] });
+
+          // The success UI will be shown because orderSuccess (isSuccess from useMutation) is true
+          // Navigation can happen after a delay or directly
+        } else {
+          // Handle cases where API indicates success:false but doesn't throw an error
+          toast({
+            title: "Order Failed",
+            description: data.message || "Could not place order. Please try again.",
+            variant: "destructive",
+          });
+        }
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to place order. Please try again.",
+          variant: "destructive"
+        });
+        console.error('Failed to place order:', error);
+      },
+    }
+  );
   
-  // URL validation
   const isValidRedditUrl = () => {
-    // Basic validation for Reddit URL
     return redditUrl.trim() !== '' && redditUrl.includes('reddit.com');
   };
   
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!isValidRedditUrl()) {
@@ -51,35 +101,19 @@ const NewOrder = () => {
       return;
     }
     
-    try {
-      setIsSubmitting(true);
-      
-      const result = await api.orders.createOrder({
-        redditUrl,
-        upvotes
-      });
-      
-      if (result.success) {
-        setOrderSuccess(true);
-        await refreshUser(); // Refresh user data to update credits
-        
-        setTimeout(() => {
-          navigate('/orders/history');
-        }, 2000);
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to place order. Please try again.",
-        variant: "destructive"
-      });
-      console.error('Failed to place order:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    createOrderMutation({ redditUrl, upvotes });
   };
+
+  useEffect(() => {
+    if (orderSuccess) {
+      const timer = setTimeout(() => {
+        navigate('/orders/history');
+      }, 2000); // Navigate after 2 seconds of showing success message
+      return () => clearTimeout(timer);
+    }
+  }, [orderSuccess, navigate]);
   
-  if (orderSuccess) {
+  if (orderSuccess) { // This is now isSuccess from useMutation
     return (
       <div className="flex flex-col items-center justify-center h-full p-6">
         <div className="w-full max-w-md">

@@ -1,7 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react'; // Removed useEffect
 import { api } from '@/services/api';
 import { toast } from "@/components/ui/use-toast";
+import { useQuery } from '@tanstack/react-query'; // Import useQuery
 import {
   Card,
   CardContent,
@@ -26,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
-import { CreditCard, Loader2, Download } from 'lucide-react';
+import { CreditCard, Loader2, Download, AlertCircle } from 'lucide-react'; // Added AlertCircle
 
 interface Payment {
   id: string;
@@ -40,10 +41,7 @@ interface Payment {
 }
 
 const PaymentHistory = () => {
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  // Filtering and sorting
+  // Filtering and sorting states remain
   const [searchTerm, setSearchTerm] = useState('');
   const [methodFilter, setMethodFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
@@ -51,30 +49,29 @@ const PaymentHistory = () => {
   // Pagination (simplified for this implementation)
   const [currentPage, setCurrentPage] = useState(1);
   const paymentsPerPage = 10;
+
+  const {
+    data: paymentsData,
+    isLoading,
+    isError,
+    error
+  } = useQuery<Payment[], Error>({
+    queryKey: ['payments'],
+    queryFn: api.payments.getPayments,
+    onError: (err) => { // Optional: Keep toast for errors or use inline display
+      console.error('Failed to fetch payments:', err);
+      toast({
+        title: "Error",
+        description: `Failed to load payment history: ${err.message}`,
+        variant: "destructive"
+      });
+    }
+  });
   
-  useEffect(() => {
-    const fetchPayments = async () => {
-      try {
-        setLoading(true);
-        const data = await api.payments.getPayments();
-        setPayments(data);
-      } catch (error) {
-        console.error('Failed to fetch payments:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load payment history.",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchPayments();
-  }, []);
-  
+  const allPayments = paymentsData || [];
+
   // Filter and sort payments
-  const filteredPayments = payments.filter(payment => {
+  const filteredPayments = allPayments.filter(payment => {
     // Search filter
     const matchesSearch = searchTerm === '' || 
       payment.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -177,7 +174,7 @@ const PaymentHistory = () => {
             
             <div className="flex justify-between items-center">
               <div className="text-sm text-gray-500">
-                Showing {Math.min(filteredPayments.length, indexOfFirstPayment + 1)}-{Math.min(indexOfLastPayment, filteredPayments.length)} of {filteredPayments.length} payments
+                Showing {currentPayments.length > 0 ? indexOfFirstPayment + 1 : 0}-{Math.min(indexOfLastPayment, filteredPayments.length)} of {filteredPayments.length} payments
               </div>
               
               <Select value={sortBy} onValueChange={setSortBy}>
@@ -193,9 +190,15 @@ const PaymentHistory = () => {
               </Select>
             </div>
             
-            {loading ? (
+            {isLoading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-upvote-primary" />
+                <p className="ml-2">Loading payments...</p>
+              </div>
+            ) : isError ? (
+              <div className="text-center py-8 text-red-500">
+                <AlertCircle className="mx-auto mb-2 h-10 w-10" />
+                <p>Error loading payments: {error?.message || 'Unknown error'}</p>
               </div>
             ) : filteredPayments.length === 0 ? (
               <div className="text-center py-8">

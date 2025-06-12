@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
+from typing import List, Dict, Any # Added Dict, Any
 from ..models.user import User
-from ..models.payment import Payment, PaymentCreate, PaymentMethod
+from ..models.payment import Payment, PaymentCreate, PaymentMethod, TopUpRequest # Added TopUpRequest
 from ..services.payment_service import PaymentService
 from ..utils.exceptions import (
     PaymentProcessingError,
@@ -98,4 +98,35 @@ async def set_default_payment_method(
     try:
         return await PaymentService.set_default_payment_method(current_user.id, method_id)
     except Exception as e:
-        raise PaymentProcessingError(str(e)) 
+        raise PaymentProcessingError(str(e))
+
+@router.post("/top-up", response_model=Dict[str, Any])
+async def top_up_account(
+    top_up_data: TopUpRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Top up user account credits."""
+    try:
+        # Basic validation can be done here or in the service.
+        # Example: Ensure card details are present if method is credit_card
+        if top_up_data.payment_method == "credit_card":
+            if not top_up_data.payment_details.get("cardNumber") or \
+               not top_up_data.payment_details.get("cardExpiry") or \
+               not top_up_data.payment_details.get("cardCvc") or \
+               not top_up_data.payment_details.get("cardName"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Missing credit card details for top-up."
+                )
+        # Add more validation for other payment methods if necessary
+
+        response = await PaymentService.process_top_up(current_user.id, top_up_data)
+        return response
+    except HTTPException as e: # Re-raise HTTPExceptions from service
+        raise e
+    except Exception as e:
+        # Log the exception e for debugging
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred during top-up: {str(e)}"
+        )

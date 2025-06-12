@@ -1,18 +1,19 @@
 
 import React from 'react';
-import { useApp } from '@/context/AppContext';
+// import { useApp } from '@/context/AppContext'; // To be removed
 import { useAuth } from '@/context/AuthContext';
-import { Bell, Menu, LogOut } from 'lucide-react';
+import { Bell, Menu, LogOut, UserCircle2 } from 'lucide-react'; // Added UserCircle2 for placeholder
 import { Button } from '@/components/ui/button';
 import ThemeToggle from '../ThemeToggle';
+import { Skeleton } from '@/components/ui/skeleton'; // For loading state
 
 interface HeaderProps {
   toggleSidebar: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
-  const { user } = useApp();
-  const { logout } = useAuth();
+  // const { user: appUser } = useApp(); // Replaced by useAuth user
+  const { user, logout, isLoading: isAuthLoading } = useAuth();
 
   return (
     <header className="h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between px-4">

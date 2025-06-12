@@ -55,22 +55,16 @@ interface Order {
 }
 
 const OrdersHistory = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: ordersData, isLoading, error } = useQuery({
+  const { data: ordersData, isLoading, error } = useQuery<Order[], Error>({ // Added types
     queryKey: ['orders'],
     queryFn: api.orders.getOrders,
+    // initialData: [], // Option 1: Provide initial empty array
   });
 
-  useEffect(() => {
-    if (ordersData) {
-      // Cast the data to Order[] to ensure type compatibility
-      setOrders(ordersData as Order[]);
-    }
-  }, [ordersData]);
-
-  const filteredOrders = orders.filter((order) =>
+  // Option 2: Handle potentially undefined ordersData directly in filter or ensure it's defined by this point
+  const filteredOrders = (ordersData || []).filter((order) =>
     order.redditUrl.toLowerCase().includes(searchQuery.toLowerCase()) ||
     order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     order.status.toLowerCase().includes(searchQuery.toLowerCase())

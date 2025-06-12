@@ -1,15 +1,32 @@
 
-import { currentUser, accountActivity } from "@/mocks/userMock";
-import { orders, autoOrders } from "@/mocks/ordersMock";
-import { payments } from "@/mocks/paymentsMock";
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:8000/api';
+
+// Placeholder for JWT token retrieval
+const getToken = (): string | null => {
+  // In a real application, this would fetch the token from localStorage, Vuex store, Pinia store, etc.
+  return localStorage.getItem('jwtToken');
+};
+
+const createHeaders = (isProtected: boolean = false) => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (isProtected) {
+    const token = getToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else {
+      // Handle cases where token is expected but not found
+      console.warn('JWT token not found for protected route.');
+    }
+  }
+  return headers;
+};
 
 /**
- * Simulates API request delay
- */
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-/**
- * API service with stubbed methods for fetching and posting data
+ * API service with methods for fetching and posting data
  */
 export const api = {
   // User related endpoints
@@ -18,34 +35,69 @@ export const api = {
      * Get current user information
      */
     getCurrentUser: async () => {
-      await delay(500);
-      return { ...currentUser };
+      try {
+        const response = await axios.get(`${API_BASE_URL}/users/me`, { headers: createHeaders(true) }); // Changed path
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching current user:', error);
+        throw error; // Re-throw to allow components to handle it
+      }
     },
     
     /**
      * Get user account activity
      */
     getAccountActivity: async () => {
-      await delay(800);
-      return [...accountActivity];
+      try {
+        const response = await axios.get(`${API_BASE_URL}/users/activity`, { headers: createHeaders(true) }); // Changed path
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching account activity:', error);
+        throw error;
+      }
     },
     
     /**
      * Add credits to user account
      */
     topUpAccount: async (amount: number, paymentMethod: string, paymentDetails: any) => {
-      await delay(1000);
-      return {
-        success: true,
-        transaction: {
-          id: `pay_${Math.floor(Math.random() * 1000)}`,
+      try {
+        const response = await axios.post(`${API_BASE_URL}/payments/top-up`, { // Changed URL
           amount,
-          method: paymentMethod,
-          status: "completed",
-          createdAt: new Date().toISOString(),
-          description: "Account top-up"
-        }
-      };
+          paymentMethod,
+          paymentDetails,
+        }, { headers: createHeaders(true) });
+        return response.data;
+      } catch (error) {
+        console.error('Error topping up account:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Log in a user
+     */
+    login: async (credentials: { email: string; password: string }) => {
+      try {
+        const response = await axios.post(`${API_BASE_URL}/users/login`, credentials, { headers: createHeaders(false) });
+        return response.data;
+      } catch (error) {
+        console.error('Error logging in:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Sign up a new user
+     */
+    signup: async (userData: { username: string; email: string; password: string }) => {
+      try {
+        const response = await axios.post(`${API_BASE_URL}/users/signup`, userData, { headers: createHeaders(false) });
+        return response.data;
+      } catch (error) {
+        console.error('Error signing up:', error);
+        throw error;
+      }
     }
   },
   
@@ -55,14 +107,20 @@ export const api = {
      * Get all orders
      */
     getOrders: async () => {
-      await delay(700);
-      return [...orders];
+      try {
+        const response = await axios.get(`${API_BASE_URL}/orders`, { headers: createHeaders(true) });
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        throw error;
+      }
     },
     
     /**
      * Get orders history (alias for getOrders for backward compatibility)
      */
     getOrdersHistory: async () => {
+      // This can reuse getOrders or have a dedicated endpoint if backend semantics differ
       return api.orders.getOrders();
     },
     
@@ -70,8 +128,13 @@ export const api = {
      * Get auto orders
      */
     getAutoOrders: async () => {
-      await delay(600);
-      return [...autoOrders];
+      try {
+        const response = await axios.get(`${API_BASE_URL}/orders/auto`, { headers: createHeaders(true) });
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching auto orders:', error);
+        throw error;
+      }
     },
     
     /**
@@ -81,21 +144,13 @@ export const api = {
       redditUrl: string,
       upvotes: number,
     }) => {
-      await delay(1200);
-      const newOrder = {
-        id: `ord_${Math.floor(Math.random() * 1000)}`,
-        type: "one-time",
-        status: "in-progress",
-        createdAt: new Date().toISOString(),
-        completedAt: null,
-        cost: orderData.upvotes * 0.8,
-        ...orderData
-      };
-      
-      return {
-        success: true,
-        order: newOrder
-      };
+      try {
+        const response = await axios.post(`${API_BASE_URL}/orders`, orderData, { headers: createHeaders(true) }); // Changed path
+        return response.data;
+      } catch (error) {
+        console.error('Error creating order:', error);
+        throw error;
+      }
     },
     
     /**
@@ -106,38 +161,27 @@ export const api = {
       upvotes: number,
       frequency: "daily" | "weekly" | "monthly"
     }) => {
-      await delay(1200);
-      
-      const costMap = {
-        "daily": 0.7,
-        "weekly": 0.75,
-        "monthly": 0.8
-      };
-      
-      const newAutoOrder = {
-        id: `auto_${Math.floor(Math.random() * 1000)}`,
-        status: "active",
-        createdAt: new Date().toISOString(),
-        nextRunAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        costPerRun: orderData.upvotes * costMap[orderData.frequency],
-        ...orderData
-      };
-      
-      return {
-        success: true,
-        order: newAutoOrder
-      };
+      try {
+        const response = await axios.post(`${API_BASE_URL}/orders/auto`, orderData, { headers: createHeaders(true) }); // Changed path
+        return response.data;
+      } catch (error) {
+        console.error('Error creating auto order:', error);
+        throw error;
+      }
     },
     
     /**
      * Cancel an auto order
      */
     cancelAutoOrder: async (orderId: string) => {
-      await delay(800);
-      return {
-        success: true,
-        message: `Auto order ${orderId} has been cancelled.`
-      };
+      try {
+        // Changed URL to include orderId in path, and sending empty object as body for POST
+        const response = await axios.post(`${API_BASE_URL}/orders/auto/${orderId}/cancel`, {}, { headers: createHeaders(true) });
+        return response.data;
+      } catch (error) {
+        console.error('Error cancelling auto order:', error);
+        throw error;
+      }
     }
   },
   
@@ -147,8 +191,13 @@ export const api = {
      * Get payment history
      */
     getPayments: async () => {
-      await delay(900);
-      return [...payments];
+      try {
+        const response = await axios.get(`${API_BASE_URL}/payments`, { headers: createHeaders(true) });
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching payments:', error);
+        throw error;
+      }
     }
   }
 };

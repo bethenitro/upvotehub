@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from datetime import datetime, timedelta
 from typing import List
-from ..models.user import User, AccountActivity
+from ..models.user import User, UserCreate, AccountActivity # Added UserCreate
 from ..models.order import Order
 from ..services.user_service import UserService
 from ..services.order_service import OrderService
@@ -77,4 +77,21 @@ async def validate_reddit_url_endpoint(url: str):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
-        ) 
+        )
+
+@router.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
+async def signup_user(user_data: UserCreate):
+    """Create a new user"""
+    try:
+        created_user = await UserService.create_user(user_data)
+        return created_user
+    except HTTPException as e: # Re-raise HTTPExceptions from service layer
+        raise e
+    except ValueError as e: # Catch specific ValueErrors like "User already exists" if not HTTPExceptions
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        # Fallback for other unexpected errors
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {str(e)}"
+        )

@@ -60,4 +60,9 @@ class PaymentMethod(BaseModel):
     details: Dict[str, Any]
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+class TopUpRequest(BaseModel):
+    amount: float = Field(..., gt=0, description="Amount to top up, must be positive")
+    payment_method: Literal["credit_card", "paypal", "crypto"] # Restrict to actual payment methods, not "credits"
+    payment_details: Dict[str, Any] = Field(default_factory=dict, description="Details for the payment method, e.g., card info")
