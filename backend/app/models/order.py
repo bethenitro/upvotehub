@@ -17,10 +17,15 @@ class OrderInDB(OrderBase):
     id: str
     user_id: str
     status: Literal["pending", "in-progress", "completed", "failed", "cancelled"] = "pending"
+    cost: float
     created_at: datetime = datetime.utcnow()
+    started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     cancelled_at: Optional[datetime] = None
     paused_at: Optional[datetime] = None
+    last_update: Optional[datetime] = None
+    upvotes_processed: int = 0
+    progress_percentage: float = 0.0
     error_message: Optional[str] = None
     payment_id: Optional[str] = None
     card_last4: Optional[str] = None
@@ -29,10 +34,15 @@ class Order(OrderBase):
     id: str
     user_id: str
     status: str
+    cost: float
     created_at: datetime
+    started_at: Optional[datetime]
     completed_at: Optional[datetime]
     cancelled_at: Optional[datetime]
     paused_at: Optional[datetime]
+    last_update: Optional[datetime]
+    upvotes_processed: int
+    progress_percentage: float
     error_message: Optional[str]
     payment_id: Optional[str]
     card_last4: Optional[str]

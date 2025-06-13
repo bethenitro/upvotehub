@@ -64,10 +64,6 @@ const NewOrder = () => {
       if (result.success) {
         setOrderSuccess(true);
         await refreshUser(); // Refresh user data to update credits
-        
-        setTimeout(() => {
-          navigate('/orders/history');
-        }, 2000);
       }
     } catch (error) {
       toast({
@@ -115,8 +111,23 @@ const NewOrder = () => {
                 </div>
               </div>
             </CardContent>
-            <CardFooter>
-              <Button className="w-full" onClick={() => navigate('/orders/history')}>
+            <CardFooter className="flex flex-col gap-3">
+              <Button 
+                className="w-full" 
+                onClick={() => {
+                  setOrderSuccess(false);
+                  setRedditUrl('');
+                  setUpvotes(20);
+                  setUpvotesPerMinute(1);
+                }}
+              >
+                Create New Order
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={() => navigate('/orders/history')}
+              >
                 View Order History
               </Button>
             </CardFooter>

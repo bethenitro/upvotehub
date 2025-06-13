@@ -17,22 +17,36 @@ def validate_reddit_url(url: str) -> Tuple[bool, Optional[str]]:
         
         # Check if it's a Reddit URL
         if not parsed.netloc.endswith('reddit.com'):
+            logger.debug("reddit_url_validation_failed", reason="not_reddit_domain", url=url)
             return False, None
             
         # Extract the path components
         path_parts = parsed.path.strip('/').split('/')
         
+        logger.debug("reddit_url_parsing", url=url, path_parts=path_parts)
+        
         # Check if it's a post URL (should be r/subreddit/comments/post_id)
-        if len(path_parts) < 4 or path_parts[1] != 'comments':
+        if len(path_parts) < 4:
+            logger.debug("reddit_url_validation_failed", reason="insufficient_path_parts", path_parts=path_parts)
+            return False, None
+            
+        if path_parts[0] != 'r':
+            logger.debug("reddit_url_validation_failed", reason="not_subreddit_url", first_part=path_parts[0])
+            return False, None
+            
+        if path_parts[2] != 'comments':
+            logger.debug("reddit_url_validation_failed", reason="not_comments_url", third_part=path_parts[2])
             return False, None
             
         # Extract the post ID
-        post_id = path_parts[2]
+        post_id = path_parts[3]
         
         # Validate post ID format (should be alphanumeric)
         if not re.match(r'^[a-zA-Z0-9]+$', post_id):
+            logger.debug("reddit_url_validation_failed", reason="invalid_post_id", post_id=post_id)
             return False, None
             
+        logger.debug("reddit_url_validation_success", url=url, post_id=post_id)
         return True, post_id
         
     except Exception as e:

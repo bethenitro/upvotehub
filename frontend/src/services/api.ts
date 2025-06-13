@@ -228,9 +228,30 @@ export const api = {
           throw new Error(error.detail || 'Failed to create order');
         }
 
-        return await response.json();
+        const data = await response.json();
+        return { success: true, data };
       } catch (error) {
         console.error('Error creating order:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get order status and progress
+     */
+    getOrderStatus: async (orderId: string) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch order status');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching order status:', error);
         throw error;
       }
     }
