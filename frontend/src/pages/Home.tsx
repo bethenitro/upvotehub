@@ -57,11 +57,6 @@ const Home: React.FC = () => {
                     Get Started <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
-                <Link to="#how-it-works">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                    Learn More
-                  </Button>
-                </Link>
               </div>
             </div>
             <div className="hidden lg:flex justify-center">
@@ -215,9 +210,11 @@ const Home: React.FC = () => {
                     <span>Email support</span>
                   </li>
                 </ul>
+                <Link to="/signup">
                 <Button className="w-full mt-6">
                   Get Started
                 </Button>
+                </Link>
               </CardContent>
             </Card>
             
@@ -251,9 +248,11 @@ const Home: React.FC = () => {
                     <span>Auto-scheduling</span>
                   </li>
                 </ul>
+                <Link to="/signup">
                 <Button className="w-full mt-6">
                   Get Started
                 </Button>
+                </Link>
               </CardContent>
             </Card>
             
@@ -284,9 +283,11 @@ const Home: React.FC = () => {
                     <span>API access</span>
                   </li>
                 </ul>
+                <Link to="/signup">
                 <Button className="w-full mt-6">
                   Get Started
                 </Button>
+                </Link>
               </CardContent>
             </Card>
           </div>

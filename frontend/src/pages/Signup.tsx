@@ -124,21 +124,6 @@ const Signup: React.FC = () => {
                 )}
               </div>
               
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="terms" 
-                  checked={agreeToTerms} 
-                  onCheckedChange={(checked) => setAgreeToTerms(checked === true)}
-                  required 
-                />
-                <label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  I agree to the{' '}
-                  <Link to="/terms" className="text-upvote-primary hover:underline">Terms of Service</Link>
-                  {' '}and{' '}
-                  <Link to="/privacy" className="text-upvote-primary hover:underline">Privacy Policy</Link>
-                </label>
-              </div>
-              
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? 'Creating account...' : 'Create Account'}
               </Button>

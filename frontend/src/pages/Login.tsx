@@ -5,12 +5,10 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -58,12 +56,7 @@ const Login: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="text-sm font-medium">Password</label>
-                  <Link to="/forgot-password" className="text-xs text-upvote-primary hover:underline">
-                    Forgot password?
-                  </Link>
-                </div>
+                <label htmlFor="password" className="text-sm font-medium">Password</label>
                 <Input
                   id="password"
                   type="password"
@@ -72,17 +65,6 @@ const Login: React.FC = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="remember" 
-                  checked={rememberMe} 
-                  onCheckedChange={(checked) => setRememberMe(checked === true)} 
-                />
-                <label htmlFor="remember" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Remember me
-                </label>
               </div>
               
               <Button type="submit" className="w-full" disabled={isSubmitting}>
