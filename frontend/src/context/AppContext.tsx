@@ -21,7 +21,11 @@ interface AppContextType {
   user: User | null;
   loading: boolean;
   refreshUser: () => Promise<void>;
-  topUpAccount: (amount: number, paymentMethod: string, paymentDetails: any) => Promise<boolean>;
+  topUpAccount: (amount: number, paymentMethod: string, paymentDetails: any) => Promise<{
+    success: boolean;
+    checkout_link?: string;
+    payment_id?: string;
+  }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -54,6 +58,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const topUpAccount = async (amount: number, paymentMethod: string, paymentDetails: any) => {
     try {
       setLoading(true);
+      
+      // For crypto payments, use the new payment API
+      if (paymentMethod === 'crypto') {
+        const result = await api.payments.createCryptoPayment(amount, paymentDetails);
+        
+        if (result.success) {
+          toast({
+            title: "Payment Created",
+            description: "Crypto payment created successfully. Complete payment to add credits.",
+          });
+          return {
+            success: true,
+            checkout_link: result.checkout_link,
+            payment_id: result.payment_id
+          };
+        }
+        return { success: false };
+      }
+      
+      // Fallback for other payment methods (though we only support crypto now)
       const result = await api.user.topUpAccount(amount, paymentMethod, paymentDetails);
       
       if (result.success && user) {
@@ -65,17 +89,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           title: "Success",
           description: `Added ${amount} credits to your account.`
         });
-        return true;
+        return { success: true };
       }
-      return false;
+      return { success: false };
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to top up account.",
+        description: "Failed to create payment.",
         variant: "destructive"
       });
-      console.error("Failed to top up account:", error);
-      return false;
+      console.error("Failed to create payment:", error);
+      return { success: false };
     } finally {
       setLoading(false);
     }

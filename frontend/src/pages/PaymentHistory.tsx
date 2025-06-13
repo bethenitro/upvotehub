@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
-import { CreditCard, Loader2, Download } from 'lucide-react';
+import { Bitcoin, Loader2, Download, ExternalLink } from 'lucide-react';
 
 interface Payment {
   id: string;
@@ -117,13 +117,13 @@ const PaymentHistory = () => {
   
   // Payment method icon
   const PaymentMethodIcon = ({ method }: { method: string }) => {
-    let icon = <CreditCard className="w-4 h-4 mr-1" />;
+    let icon = <Bitcoin className="w-4 h-4 mr-1 text-orange-500" />;
     
     return (
       <div className="flex items-center">
         {icon}
         <span className="capitalize">
-          {method === 'credit_card' ? 'Credit Card' : method}
+          {method === 'crypto' ? 'Cryptocurrency' : method}
         </span>
       </div>
     );
@@ -166,10 +166,7 @@ const PaymentHistory = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Methods</SelectItem>
-                    <SelectItem value="credit_card">Credit Card</SelectItem>
-                    <SelectItem value="paypal">PayPal</SelectItem>
                     <SelectItem value="crypto">Cryptocurrency</SelectItem>
-                    <SelectItem value="credits">Account Credits</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

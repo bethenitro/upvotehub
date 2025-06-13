@@ -4,7 +4,7 @@ from typing import List
 from ..models.user import User
 from ..models.payment import Payment, PaymentCreate, PaymentMethod
 from ..services.payment_service import PaymentService
-from ..services.btcpay_service import get_btcpay_service
+from ..services.btcpay_service import btcpay_service
 from ..utils.exceptions import (
     PaymentProcessingError,
     InvalidPaymentMethodError,
@@ -73,7 +73,6 @@ async def btcpay_webhook(request: Request):
             raise HTTPException(status_code=400, detail="Missing signature")
         
         # Verify webhook signature
-        btcpay_service = get_btcpay_service()
         if not btcpay_service.verify_webhook_signature(body, signature):
             logger.warning("btcpay_webhook_invalid_signature")
             raise HTTPException(status_code=400, detail="Invalid signature")
@@ -101,7 +100,6 @@ async def btcpay_webhook(request: Request):
 async def get_supported_crypto_methods():
     """Get supported cryptocurrency payment methods"""
     try:
-        btcpay_service = get_btcpay_service()
         methods = await btcpay_service.get_supported_payment_methods()
         return {"supported_methods": methods}
     except Exception as e:

@@ -286,6 +286,78 @@ export const api = {
         console.error('Error fetching payments:', error);
         throw error;
       }
+    },
+
+    /**
+     * Create crypto payment
+     */
+    createCryptoPayment: async (amount: number, paymentDetails: any) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/payments`, {
+          method: 'POST',
+          headers: createHeaders(),
+          body: JSON.stringify({
+            amount,
+            method: 'crypto',
+            payment_details: paymentDetails
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create crypto payment');
+        }
+
+        const payment = await response.json();
+        return {
+          success: true,
+          payment_id: payment.id,
+          checkout_link: payment.payment_details?.btcpay_checkout_link,
+          payment
+        };
+      } catch (error) {
+        console.error('Error creating crypto payment:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get payment status
+     */
+    getPaymentStatus: async (paymentId: string) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/payments/${paymentId}/status`, {
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch payment status');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching payment status:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get supported crypto methods
+     */
+    getSupportedCryptoMethods: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/payments/crypto/supported-methods`, {
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch supported crypto methods');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching supported crypto methods:', error);
+        return { supported_methods: [] };
+      }
     }
   }
 };

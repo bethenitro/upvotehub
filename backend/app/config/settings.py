@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings
-from functools import lru_cache
 import os
 from dotenv import load_dotenv
 import json
@@ -42,11 +41,23 @@ class Settings(BaseSettings):
     # Order Processing
     ORDER_SCRIPT_PATH: str = "script.py"
     
+    # BTCPay Server Configuration
+    BTCPAY_SERVER_URL: str = os.getenv("BTCPAY_SERVER_URL", "")
+    BTCPAY_API_KEY: str = os.getenv("BTCPAY_API_KEY", "")
+    BTCPAY_STORE_ID: str = os.getenv("BTCPAY_STORE_ID", "")
+    BTCPAY_WEBHOOK_SECRET: str = os.getenv("BTCPAY_WEBHOOK_SECRET", "")
+    
+    # Frontend URL for redirects
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    
     class Config:
         case_sensitive = True
 
-@lru_cache()
 def get_settings() -> Settings:
     return Settings() 
 
+# Note: Removed @lru_cache() to avoid caching settings with empty environment variables
+# The settings will be created fresh each time to ensure environment variables are loaded correctly
+
+# Create a settings instance for backward compatibility with imports
 settings = get_settings()

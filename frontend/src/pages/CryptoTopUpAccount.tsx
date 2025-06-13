@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { CheckCircle, Loader2, Bitcoin, ExternalLink } from 'lucide-react';
 import { api } from '@/services/api';
 
-const TopUpAccount = () => {
+const CryptoTopUpAccount = () => {
   const { user, refreshUser } = useApp();
   
   // Form state
@@ -23,29 +23,9 @@ const TopUpAccount = () => {
   
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [success, setSuccess] = useState(false);
   const [checkoutLink, setCheckoutLink] = useState<string>('');
   const [paymentId, setPaymentId] = useState<string>('');
-  const [lastStatusCheck, setLastStatusCheck] = useState<string>('');
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
-
-  // Auto-refresh payment status every 30 seconds when payment is pending
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (autoRefreshEnabled && paymentId && success) {
-      interval = setInterval(() => {
-        checkPaymentStatus();
-      }, 30000); // Check every 30 seconds
-    }
-    
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [autoRefreshEnabled, paymentId, success]);
   
   // Predefined amounts with crypto-friendly values
   const creditPackages = [
@@ -95,12 +75,10 @@ const TopUpAccount = () => {
         setCheckoutLink(result.checkout_link);
         setPaymentId(result.payment_id);
         setSuccess(true);
-        setAutoRefreshEnabled(true); // Enable auto-refresh for new payments
-        setLastStatusCheck('Payment created - Waiting for completion...');
         
         toast({
           title: "Payment Created",
-          description: "You will be redirected to complete your crypto payment. We'll monitor the status automatically.",
+          description: "You will be redirected to complete your crypto payment.",
         });
       }
     } catch (error) {
@@ -119,60 +97,30 @@ const TopUpAccount = () => {
   const checkPaymentStatus = async () => {
     if (!paymentId) return;
     
-    setIsCheckingStatus(true);
-    
     try {
       const status = await api.payments.getPaymentStatus(paymentId);
-      const currentTime = new Date().toLocaleTimeString();
       
       if (status.status === 'completed') {
         await refreshUser();
         toast({
-          title: "Payment Completed! 🎉",
+          title: "Payment Completed",
           description: `${amount} credits have been added to your account.`,
         });
         setSuccess(false);
         setCheckoutLink('');
         setPaymentId('');
-        setLastStatusCheck('');
-        setAutoRefreshEnabled(false);
       } else if (status.status === 'failed') {
         toast({
           title: "Payment Failed",
-          description: "Your crypto payment was not successful. Please try again.",
+          description: "Your crypto payment was not successful.",
           variant: "destructive"
         });
         setSuccess(false);
         setCheckoutLink('');
         setPaymentId('');
-        setLastStatusCheck('');
-        setAutoRefreshEnabled(false);
-      } else if (status.status === 'pending') {
-        setLastStatusCheck(`Pending - Last checked at ${currentTime}`);
-        setAutoRefreshEnabled(true); // Enable auto-refresh for pending payments
-        toast({
-          title: "Payment Pending",
-          description: "Your payment is still being processed. We'll check automatically every 30 seconds.",
-        });
-      } else {
-        // Handle other statuses like 'processing', 'expired', etc.
-        const statusMessage = status.status.charAt(0).toUpperCase() + status.status.slice(1);
-        setLastStatusCheck(`${statusMessage} - Last checked at ${currentTime}`);
-        setAutoRefreshEnabled(true); // Continue auto-refresh for processing payments
-        toast({
-          title: `Payment ${statusMessage}`,
-          description: `Your payment status is currently: ${statusMessage}`,
-        });
       }
     } catch (error) {
       console.error('Error checking payment status:', error);
-      toast({
-        title: "Status Check Failed",
-        description: "Unable to check payment status. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsCheckingStatus(false);
     }
   };
 
@@ -213,28 +161,10 @@ const TopUpAccount = () => {
                     <Button 
                       variant="outline" 
                       onClick={checkPaymentStatus}
-                      disabled={isCheckingStatus}
                     >
-                      {isCheckingStatus ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Checking...
-                        </>
-                      ) : (
-                        'Check Status'
-                      )}
+                      Check Status
                     </Button>
                   </div>
-                  {lastStatusCheck && (
-                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                      <p className="text-sm text-blue-800 font-medium">Status: {lastStatusCheck}</p>
-                      {autoRefreshEnabled && (
-                        <p className="text-xs text-blue-600 mt-1">
-                          🔄 Auto-checking every 30 seconds...
-                        </p>
-                      )}
-                    </div>
-                  )}
                   <p className="text-xs text-gray-500 mt-4">
                     Keep this page open and click "Check Status" after completing payment
                   </p>
@@ -455,4 +385,4 @@ const TopUpAccount = () => {
   );
 };
 
-export default TopUpAccount;
+export default CryptoTopUpAccount;

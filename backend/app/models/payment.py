@@ -42,10 +42,10 @@ class Payment(PaymentBase):
     id: str
     user_id: str
     created_at: datetime
-    completed_at: Optional[datetime]
-    refund_amount: Optional[float]
-    refund_reason: Optional[str]
-    error_message: Optional[str]
+    completed_at: Optional[datetime] = None
+    refund_amount: Optional[float] = None
+    refund_reason: Optional[str] = None
+    error_message: Optional[str] = None
     payment_details: Dict[str, Any]
 
     class Config:
