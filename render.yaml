@@ -1,0 +1,39 @@
+services:
+  # Backend API service
+  - type: web
+    name: upvote-backend
+    runtime: python
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && python start_server.py
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: MONGODB_URL
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: upvote_db
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: BTCPAY_SERVER_URL
+        sync: false
+      - key: BTCPAY_API_KEY
+        sync: false
+      - key: BTCPAY_STORE_ID
+        sync: false
+      - key: BTCPAY_WEBHOOK_SECRET
+        sync: false
+
+  # Frontend service
+  - type: web
+    name: upvote-frontend
+    runtime: node
+    buildCommand: cd frontend && bun install && bun run build
+    startCommand: cd frontend && bun run preview
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          name: upvote-backend
+          type: web
+          property: url
