@@ -131,9 +131,18 @@ export const api = {
     /**
      * Get user account activity
      */
-    getAccountActivity: async () => {
+    getAccountActivity: async (startDate?: string, endDate?: string) => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/users/activity`, {
+        // Default to last 30 days if no dates provided
+        const defaultEndDate = endDate || new Date().toISOString();
+        const defaultStartDate = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        
+        const params = new URLSearchParams({
+          start_date: defaultStartDate,
+          end_date: defaultEndDate,
+        });
+        
+        const response = await fetch(`${API_BASE_URL}/api/users/activity?${params}`, {
           headers: createHeaders(),
         });
 

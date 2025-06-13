@@ -39,20 +39,25 @@ import {
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
-// Define the Order type
+// Define the Order type (matching backend response)
 interface Order {
   id: string;
   type: string;
-  redditUrl: string;
+  reddit_url: string; // Backend uses snake_case
   upvotes: number;
-  upvotesPerMinute?: number;
+  upvotes_per_minute?: number;
   status: string;
-  createdAt: string;
-  completedAt?: string; // Make completedAt optional
-  nextRunAt?: string;
-  frequency?: string;
+  created_at: string;
+  completed_at?: string;
+  started_at?: string;
+  cancelled_at?: string;
+  paused_at?: string;
   cost: number;
-  cancelledAt?: string;
+  upvotes_processed?: number;
+  progress_percentage?: number;
+  error_message?: string;
+  payment_id?: string;
+  card_last4?: string;
 }
 
 const OrdersHistory = () => {
@@ -72,9 +77,9 @@ const OrdersHistory = () => {
   }, [ordersData]);
 
   const filteredOrders = orders.filter((order) =>
-    order.redditUrl.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    order.status.toLowerCase().includes(searchQuery.toLowerCase())
+    (order.reddit_url?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (order.id?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (order.status?.toLowerCase() || '').includes(searchQuery.toLowerCase())
   );
 
   // Status badge component
@@ -100,6 +105,37 @@ const OrdersHistory = () => {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     return format(new Date(dateString), 'MMM d, yyyy h:mm a');
+  };
+
+  // Format completion date with status context
+  const formatCompletionDate = (order: Order) => {
+    if (order.completed_at) {
+      return format(new Date(order.completed_at), 'MMM d, yyyy h:mm a');
+    }
+    
+    switch (order.status?.toLowerCase()) {
+      case 'pending':
+        return <span className="text-muted-foreground italic">Not started</span>;
+      case 'in-progress':
+      case 'processing':
+        const progress = order.progress_percentage || 0;
+        const processed = order.upvotes_processed || 0;
+        const total = order.upvotes || 0;
+        return (
+          <div className="flex flex-col">
+            <span className="text-blue-600 italic">In progress</span>
+            <span className="text-xs text-muted-foreground">
+              {processed}/{total} ({progress.toFixed(1)}%)
+            </span>
+          </div>
+        );
+      case 'failed':
+        return <span className="text-red-500 italic">Failed</span>;
+      case 'cancelled':
+        return <span className="text-muted-foreground italic">Cancelled</span>;
+      default:
+        return <span className="text-muted-foreground italic">Pending</span>;
+    }
   };
 
   return (
@@ -180,7 +216,7 @@ const OrdersHistory = () => {
                     <TableHead>Delivery Rate</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead>Completed</TableHead>
+                    <TableHead>Progress/Completed</TableHead>
                     <TableHead>Cost</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
@@ -199,19 +235,19 @@ const OrdersHistory = () => {
                         <TableCell className="capitalize">{order.type}</TableCell>
                         <TableCell className="max-w-[180px] truncate">
                           <a 
-                            href={order.redditUrl} 
+                            href={order.reddit_url} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="hover:text-upvote-primary"
                           >
-                            {order.redditUrl}
+                            {order.reddit_url}
                           </a>
                         </TableCell>
                         <TableCell>{order.upvotes}</TableCell>
-                        <TableCell>{order.upvotesPerMinute || 1}/min</TableCell>
+                        <TableCell>{order.upvotes_per_minute || 1}/min</TableCell>
                         <TableCell><StatusBadge status={order.status} /></TableCell>
-                        <TableCell>{formatDate(order.createdAt)}</TableCell>
-                        <TableCell>{formatDate(order.completedAt)}</TableCell>
+                        <TableCell>{formatDate(order.created_at)}</TableCell>
+                        <TableCell>{formatCompletionDate(order)}</TableCell>
                         <TableCell>{order.cost.toFixed(2)} credits</TableCell>
                         <TableCell>
                           <DropdownMenu>

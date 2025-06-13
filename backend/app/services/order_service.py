@@ -38,7 +38,17 @@ class OrderService:
             "cost": cost,
             "status": "pending",
             "created_at": datetime.utcnow(),
-            "type": "one-time"
+            "type": "one-time",
+            "started_at": None,
+            "completed_at": None,
+            "cancelled_at": None,
+            "paused_at": None,
+            "last_update": datetime.utcnow(),
+            "upvotes_processed": 0,
+            "progress_percentage": 0.0,
+            "error_message": None,
+            "payment_id": None,
+            "card_last4": None
         }
         
         # Insert into database
@@ -56,6 +66,9 @@ class OrderService:
             upvotes=order_data.upvotes,
             cost=cost
         )
+        
+        # Remove the _id field and add the converted id field
+        order_dict.pop("_id", None)
         
         return OrderInDB(**order_dict)
 
@@ -213,17 +226,54 @@ class OrderService:
             return None
 
     @staticmethod
-    async def get_user_orders(user_id: str) -> list:
-        db = Database.get_db()
-        cursor = db[Collections.ORDERS].find({"user_id": ObjectId(user_id)})
-        return await cursor.to_list(length=None)
+    async def get_user_orders(user_id: str) -> List[Order]:
+        """Get all orders for a user with proper data conversion"""
+        try:
+            db = Database.get_db()
+            cursor = db[Collections.ORDERS].find({"user_id": ObjectId(user_id)})
+            orders_raw = await cursor.to_list(length=None)
+            
+            orders = []
+            for order_doc in orders_raw:
+                # Convert MongoDB document to Order model
+                order_dict = {
+                    "id": str(order_doc["_id"]),
+                    "user_id": str(order_doc["user_id"]),
+                    "reddit_url": order_doc["reddit_url"],
+                    "upvotes": order_doc["upvotes"],
+                    "upvotes_per_minute": order_doc.get("upvotes_per_minute", 1),
+                    "type": order_doc.get("type", "one-time"),
+                    "status": order_doc.get("status", "pending"),
+                    "cost": order_doc["cost"],
+                    "created_at": order_doc["created_at"],
+                    "started_at": order_doc.get("started_at"),
+                    "completed_at": order_doc.get("completed_at"),
+                    "cancelled_at": order_doc.get("cancelled_at"),
+                    "paused_at": order_doc.get("paused_at"),
+                    "last_update": order_doc.get("last_update"),
+                    "upvotes_processed": order_doc.get("upvotes_processed", 0),
+                    "progress_percentage": order_doc.get("progress_percentage", 0.0),
+                    "error_message": order_doc.get("error_message"),
+                    "payment_id": order_doc.get("payment_id"),
+                    "card_last4": order_doc.get("card_last4")
+                }
+                orders.append(Order(**order_dict))
+            
+            return orders
+            
+        except Exception as e:
+            logger.error("get_user_orders_failed", 
+                user_id=user_id,
+                error=str(e)
+            )
+            raise OrderProcessingError(f"Failed to get user orders: {e}")
 
     @staticmethod
     async def get_user_order_count(user_id: str) -> int:
         """Get total number of orders for a user"""
         try:
             db = Database.get_db()
-            return await db[Collections.ORDERS].count_documents({"user_id": user_id})
+            return await db[Collections.ORDERS].count_documents({"user_id": ObjectId(user_id)})
         except Exception as e:
             logger.error("get_user_order_count_failed", error=str(e))
             raise
@@ -234,7 +284,7 @@ class OrderService:
         try:
             db = Database.get_db()
             return await db[Collections.ORDERS].count_documents({
-                "user_id": user_id,
+                "user_id": ObjectId(user_id),
                 "status": {"$in": ["pending", "in-progress"]}
             })
         except Exception as e:
@@ -247,7 +297,7 @@ class OrderService:
         try:
             db = Database.get_db()
             return await db[Collections.ORDERS].count_documents({
-                "user_id": user_id,
+                "user_id": ObjectId(user_id),
                 "status": "completed"
             })
         except Exception as e:
