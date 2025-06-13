@@ -26,22 +26,40 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
-import { Bitcoin, Loader2, Download, ExternalLink } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Bitcoin, Loader2, Eye, CreditCard, DollarSign, Clock } from 'lucide-react';
 
 interface Payment {
   id: string;
   amount: number;
   method: string;
   status: string;
-  createdAt: string;
-  description: string;
+  created_at: string;
+  completed_at?: string;
+  description?: string;
   cardLast4?: string;
-  orderId?: string;
+  order_id?: string;
+  user_id: string;
+  refund_amount?: number;
+  refund_reason?: string;
+  error_message?: string;
+  payment_details: {
+    [key: string]: any;
+  };
 }
 
 const PaymentHistory = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   
   // Filtering and sorting
   const [searchTerm, setSearchTerm] = useState('');
@@ -78,8 +96,8 @@ const PaymentHistory = () => {
     // Search filter
     const matchesSearch = searchTerm === '' || 
       payment.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (payment.orderId && payment.orderId.toLowerCase().includes(searchTerm.toLowerCase()));
+      (payment.description && payment.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (payment.order_id && payment.order_id.toLowerCase().includes(searchTerm.toLowerCase()));
     
     // Method filter
     const matchesMethod = methodFilter === 'all' || payment.method === methodFilter;
@@ -91,9 +109,9 @@ const PaymentHistory = () => {
   const sortedPayments = [...filteredPayments].sort((a, b) => {
     switch (sortBy) {
       case 'newest':
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       case 'oldest':
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       case 'highest-amount':
         return b.amount - a.amount;
       case 'lowest-amount':
@@ -114,27 +132,63 @@ const PaymentHistory = () => {
     const date = new Date(dateString);
     return date.toLocaleString();
   };
+
+  // Format payment method display name
+  const formatPaymentMethod = (method: string) => {
+    switch (method) {
+      case 'crypto':
+        return 'Cryptocurrency';
+      case 'credit_card':
+        return 'Credit Card';
+      case 'paypal':
+        return 'PayPal';
+      case 'credits':
+        return 'Credits';
+      default:
+        return method;
+    }
+  };
+
+  // Get status badge variant
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'default';
+      case 'pending':
+        return 'secondary';
+      case 'failed':
+        return 'destructive';
+      case 'refunded':
+        return 'outline';
+      default:
+        return 'secondary';
+    }
+  };
   
   // Payment method icon
   const PaymentMethodIcon = ({ method }: { method: string }) => {
-    let icon = <Bitcoin className="w-4 h-4 mr-1 text-orange-500" />;
+    let icon;
+    
+    switch (method) {
+      case 'crypto':
+        icon = <Bitcoin className="w-4 h-4 mr-1 text-orange-500" />;
+        break;
+      case 'credit_card':
+        icon = <CreditCard className="w-4 h-4 mr-1 text-blue-500" />;
+        break;
+      case 'credits':
+        icon = <DollarSign className="w-4 h-4 mr-1 text-green-500" />;
+        break;
+      default:
+        icon = <DollarSign className="w-4 h-4 mr-1 text-gray-500" />;
+    }
     
     return (
       <div className="flex items-center">
         {icon}
-        <span className="capitalize">
-          {method === 'crypto' ? 'Cryptocurrency' : method}
-        </span>
+        <span>{formatPaymentMethod(method)}</span>
       </div>
     );
-  };
-  
-  // Handle receipt download
-  const handleDownloadReceipt = (paymentId: string) => {
-    toast({
-      title: "Receipt Downloaded",
-      description: `Receipt for payment ${paymentId} has been downloaded.`,
-    });
   };
   
   return (
@@ -145,7 +199,7 @@ const PaymentHistory = () => {
         <CardHeader>
           <CardTitle>All Payments</CardTitle>
           <CardDescription>
-            View and download receipts for your transactions
+            View detailed information about your transactions
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -210,24 +264,24 @@ const PaymentHistory = () => {
                         <TableHead>Payment Method</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Receipt</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {currentPayments.map((payment) => (
                         <TableRow key={payment.id} className="table-row">
                           <TableCell className="font-medium">{payment.id}</TableCell>
-                          <TableCell>{formatDate(payment.createdAt)}</TableCell>
+                          <TableCell>{formatDate(payment.created_at)}</TableCell>
                           <TableCell>
-                            {payment.orderId ? (
+                            {payment.order_id ? (
                               <span>
-                                {payment.description}
+                                {payment.description || 'Payment'}
                                 <span className="text-xs text-upvote-primary ml-1">
-                                  (#{payment.orderId})
+                                  (#{payment.order_id})
                                 </span>
                               </span>
                             ) : (
-                              payment.description
+                              payment.description || 'Payment'
                             )}
                           </TableCell>
                           <TableCell>
@@ -240,23 +294,126 @@ const PaymentHistory = () => {
                           </TableCell>
                           <TableCell className="font-medium">${payment.amount.toFixed(2)}</TableCell>
                           <TableCell>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              payment.status === 'completed'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
+                            <Badge variant={getStatusBadgeVariant(payment.status)}>
                               {payment.status}
-                            </span>
+                            </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDownloadReceipt(payment.id)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setSelectedPayment(payment)}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                  <DialogTitle>Payment Details</DialogTitle>
+                                  <DialogDescription>
+                                    Complete information for payment {payment.id}
+                                  </DialogDescription>
+                                </DialogHeader>
+                                
+                                <div className="space-y-6">
+                                  {/* Basic Payment Info */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <h4 className="font-semibold mb-2">Payment Information</h4>
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between">
+                                          <span className="font-medium">Payment ID:</span>
+                                          <span className="font-mono text-sm">{payment.id}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="font-medium">Amount:</span>
+                                          <span className="font-semibold">${payment.amount.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="font-medium">Status:</span>
+                                          <Badge variant={getStatusBadgeVariant(payment.status)}>
+                                            {payment.status}
+                                          </Badge>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="font-medium">Method:</span>
+                                          <span>{formatPaymentMethod(payment.method)}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    <div>
+                                      <h4 className="font-semibold mb-2">Timestamps</h4>
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between">
+                                          <span className="font-medium">Created:</span>
+                                          <span className="text-sm">{formatDate(payment.created_at)}</span>
+                                        </div>
+                                        {payment.completed_at && (
+                                          <div className="flex justify-between">
+                                            <span className="font-medium">Completed:</span>
+                                            <span className="text-sm">{formatDate(payment.completed_at)}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Order Information */}
+                                  {payment.order_id && (
+                                    <div>
+                                      <h4 className="font-semibold mb-2">Order Information</h4>
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between">
+                                          <span className="font-medium">Order ID:</span>
+                                          <span className="font-mono text-sm">{payment.order_id}</span>
+                                        </div>
+                                        {payment.description && (
+                                          <div className="flex justify-between">
+                                            <span className="font-medium">Description:</span>
+                                            <span>{payment.description}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Refund Information */}
+                                  {payment.refund_amount && (
+                                    <div>
+                                      <h4 className="font-semibold mb-2 text-orange-600">Refund Information</h4>
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between">
+                                          <span className="font-medium">Refund Amount:</span>
+                                          <span className="font-semibold text-orange-600">
+                                            ${payment.refund_amount.toFixed(2)}
+                                          </span>
+                                        </div>
+                                        {payment.refund_reason && (
+                                          <div className="flex justify-between">
+                                            <span className="font-medium">Reason:</span>
+                                            <span>{payment.refund_reason}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Error Information */}
+                                  {payment.error_message && (
+                                    <div>
+                                      <h4 className="font-semibold mb-2 text-red-600">Error Information</h4>
+                                      <div className="bg-red-50 p-3 rounded-md">
+                                        <p className="text-sm text-red-700">{payment.error_message}</p>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </DialogContent>
+                            </Dialog>
                           </TableCell>
                         </TableRow>
                       ))}

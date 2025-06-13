@@ -210,7 +210,15 @@ class PaymentService:
                 {"user_id": user_id}
             ).sort("created_at", -1).to_list(None)
             
-            return [Payment(**payment) for payment in payments]
+            # Convert MongoDB documents to Payment objects
+            payment_list = []
+            for payment in payments:
+                # Convert MongoDB _id to id field for Pydantic model
+                payment["id"] = str(payment["_id"])
+                payment.pop("_id", None)  # Remove _id field
+                payment_list.append(Payment(**payment))
+            
+            return payment_list
 
         except Exception as e:
             logger.error("get_user_payments_failed", error=str(e))
