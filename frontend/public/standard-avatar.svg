@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128px" height="128px" viewBox="0 0 128 128" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <title>Standard User Avatar</title>
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <circle fill="#7E69AB" cx="64" cy="64" r="64"></circle>
+        <path d="M64,96 C81.673112,96 96,81.673112 96,64 C96,46.326888 81.673112,32 64,32 C46.326888,32 32,46.326888 32,64 C32,81.673112 46.326888,96 64,96 Z" fill="#FFFFFF" opacity="0.2"></path>
+        <path d="M64,76 C75.045695,76 84,67.045695 84,56 C84,44.954305 75.045695,36 64,36 C52.954305,36 44,44.954305 44,56 C44,67.045695 52.954305,76 64,76 Z" fill="#FFFFFF" opacity="0.5"></path>
+        <path d="M100,108.5 C100,90.5 84,76 64,76 C44,76 28,90.5 28,108.5 C36.6666667,116.833333 49.3333333,121 64,121 C78.6666667,121 91.3333333,116.833333 100,108.5 Z" fill="#FFFFFF" opacity="0.5"></path>
+    </g>
+</svg>

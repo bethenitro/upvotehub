@@ -33,7 +33,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
             <p className="text-xs text-gray-500 dark:text-gray-400">{user?.credits.toFixed(2)} credits</p>
           </div>
           <div className="w-8 h-8 rounded-full overflow-hidden">
-            <img src={user?.profileImage} alt={user?.username || 'User'} className="w-full h-full object-cover" />
+            <img src="/standard-avatar.svg" alt={user?.username || 'User'} className="w-full h-full object-cover" />
           </div>
         </div>
         

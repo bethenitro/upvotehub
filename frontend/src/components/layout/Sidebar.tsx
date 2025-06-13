@@ -29,7 +29,7 @@ const Sidebar = () => {
         {user && (
           <>
             <div className="w-16 h-16 rounded-full overflow-hidden mb-2">
-              <img src={user.profileImage} alt={user.username} className="w-full h-full object-cover" />
+              <img src="/standard-avatar.svg" alt={user.username} className="w-full h-full object-cover" />
             </div>
             <h2 className="font-medium text-gray-900 dark:text-white">{user.username}</h2>
             <p className="text-sm text-upvote-neutral mb-2">{user.email}</p>
