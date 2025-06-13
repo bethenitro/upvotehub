@@ -31,8 +31,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Check if user is logged in from localStorage
     const checkAuthStatus = () => {
-      const storedUser = localStorage.getItem('upvotehub_user');
-      const storedToken = localStorage.getItem('upvotehub_token');
+      const storedUser = localStorage.getItem('upvotezone_user');
+      const storedToken = localStorage.getItem('upvotezone_token');
       if (storedUser && storedToken) {
         setUser(JSON.parse(storedUser));
       }
@@ -79,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(response.user);
       toast({
         title: "Account created",
-        description: "Welcome to UpvoteHub!",
+        description: "Welcome to UpvoteZone!",
       });
       return true;
       

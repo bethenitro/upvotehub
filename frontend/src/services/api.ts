@@ -6,7 +6,7 @@ const API_BASE_URL = "http://localhost:8000";
  * Get auth token from localStorage
  */
 const getAuthToken = (): string | null => {
-  const token = localStorage.getItem('upvotehub_token');
+  const token = localStorage.getItem('upvotezone_token');
   return token;
 };
 
@@ -52,8 +52,8 @@ export const api = {
       const data = await response.json();
       
       // Store token
-      localStorage.setItem('upvotehub_token', data.access_token);
-      localStorage.setItem('upvotehub_user', JSON.stringify(data.user));
+      localStorage.setItem('upvotezone_token', data.access_token);
+      localStorage.setItem('upvotezone_user', JSON.stringify(data.user));
       
       return data;
     },
@@ -78,8 +78,8 @@ export const api = {
       const data = await response.json();
       
       // Store token
-      localStorage.setItem('upvotehub_token', data.access_token);
-      localStorage.setItem('upvotehub_user', JSON.stringify(data.user));
+      localStorage.setItem('upvotezone_token', data.access_token);
+      localStorage.setItem('upvotezone_user', JSON.stringify(data.user));
       
       return data;
     },
@@ -101,8 +101,8 @@ export const api = {
       }
       
       // Clear local storage
-      localStorage.removeItem('upvotehub_token');
-      localStorage.removeItem('upvotehub_user');
+      localStorage.removeItem('upvotezone_token');
+      localStorage.removeItem('upvotezone_user');
     }
   },
 

@@ -112,7 +112,7 @@ const Home: React.FC = () => {
         <div className="container mx-auto px-4 md:px-6">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">
-              Why Choose <span className="text-upvote-primary">UpvoteHub</span>
+              Why Choose <span className="text-upvote-primary">UpvoteZone</span>
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
               We provide top-quality Reddit upvote services that help your content gain visibility and credibility.
@@ -307,7 +307,7 @@ const Home: React.FC = () => {
           
           <div className="max-w-3xl mx-auto space-y-6">
             <FaqItem 
-              question="Is using UpvoteHub against Reddit's rules?"
+              question="Is using UpvoteZone against Reddit's rules?"
               answer="Our service uses real Reddit accounts to provide upvotes in a natural, organic way. We carefully follow Reddit's guidelines by ensuring votes are delivered gradually and authentically."
             />
             <FaqItem 
@@ -337,7 +337,7 @@ const Home: React.FC = () => {
             Ready to <span className="text-upvote-primary">Boost</span> Your Reddit Presence?
           </h2>
           <p className="text-lg mb-8 text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Join thousands of satisfied users who have improved their Reddit visibility with UpvoteHub.
+            Join thousands of satisfied users who have improved their Reddit visibility with UpvoteZone.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link to="/signup">

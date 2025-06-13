@@ -1,11 +1,11 @@
 
-# UpvoteHub - Reddit Upvote Service
+# UpvoteZone - Reddit Upvote Service
 
-UpvoteHub is a service for purchasing Reddit upvotes for your posts. This frontend application provides an intuitive interface for placing one-time and recurring upvote orders, managing your account, and tracking your order history.
+UpvoteZone is a service for purchasing Reddit upvotes for your posts. This frontend application provides an intuitive interface for placing one-time and recurring upvote orders, managing your account, and tracking your order history.
 
 ## Demo
 
-![UpvoteHub Screenshot](https://i.imgur.com/2jGFkNe.png)
+![UpvoteZone Screenshot](https://i.imgur.com/2jGFkNe.png)
 
 ## Features
 
@@ -39,7 +39,7 @@ UpvoteHub is a service for purchasing Reddit upvotes for your posts. This fronte
 1. Clone the repository:
 ```sh
 git clone <repository-url>
-cd upvotehub
+cd upvotezone
 ```
 
 2. Install dependencies:
@@ -57,7 +57,7 @@ npm run dev
 ## Project Structure
 
 ```
-upvotehub/
+upvotezone/
 ├── public/             # Static assets
 ├── src/
 │   ├── components/     # Reusable UI components

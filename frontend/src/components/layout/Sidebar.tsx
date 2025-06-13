@@ -8,7 +8,6 @@ import {
   History, 
   CreditCard,
   Wallet,
-  Settings,
   HelpCircle
 } from 'lucide-react';
 
@@ -20,9 +19,9 @@ const Sidebar = () => {
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-3">
           <div className="gradient-primary text-white font-bold text-xl p-2 rounded-md">
-            UH
+            UZ
           </div>
-          <h1 className="font-bold text-xl text-gray-900 dark:text-white">UpvoteHub</h1>
+          <h1 className="font-bold text-xl text-gray-900 dark:text-white">UpvoteZone</h1>
         </div>
       </div>
       
@@ -66,10 +65,6 @@ const Sidebar = () => {
       </nav>
       
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        <NavLink to="/settings" className="sidebar-link">
-          <Settings size={18} />
-          <span>Settings</span>
-        </NavLink>
         <NavLink to="/help" className="sidebar-link">
           <HelpCircle size={18} />
           <span>Help & Support</span>

@@ -11,10 +11,10 @@ const PublicLayout: React.FC = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="gradient-primary text-white font-bold rounded-md p-2">
-              UH
+              UZ
             </div>
             <Link to="/" className="text-xl font-bold text-gray-900 dark:text-white">
-              UpvoteHub
+              UpvoteZone
             </Link>
           </div>
           
@@ -55,9 +55,9 @@ const PublicLayout: React.FC = () => {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="gradient-primary text-white font-bold rounded-md p-2">
-                  UH
+                  UZ
                 </div>
-                <span className="text-lg font-bold">UpvoteHub</span>
+                <span className="text-lg font-bold">UpvoteZone</span>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Boost your Reddit presence with our upvote service. Increase visibility and enhance your social proof.
@@ -93,7 +93,7 @@ const PublicLayout: React.FC = () => {
           
           <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
             <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-              © {new Date().getFullYear()} UpvoteHub. All rights reserved.
+              © {new Date().getFullYear()} UpvoteZone. All rights reserved.
             </p>
           </div>
         </div>

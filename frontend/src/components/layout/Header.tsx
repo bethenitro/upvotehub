@@ -21,7 +21,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
       </Button>
       
       <div className="flex-1 ml-4">
-        <h1 className="text-lg font-medium md:hidden text-gray-900 dark:text-white">UpvoteHub</h1>
+        <h1 className="text-lg font-medium md:hidden text-gray-900 dark:text-white">UpvoteZone</h1>
       </div>
       
       <div className="flex items-center gap-4">

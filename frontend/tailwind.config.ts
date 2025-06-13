@@ -57,7 +57,7 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
         },
-        // UpvoteHub custom colors
+        // UpvoteZone custom colors
         'upvote-primary': '#9b87f5',
         'upvote-secondary': '#7E69AB',
         'upvote-tertiary': '#6E59A5',

@@ -5,8 +5,8 @@ import { MessageCircle, Mail, Copy } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 const Help: React.FC = () => {
-  const telegramId = '@upvotehub_support';
-  const email = 'support@upvotehub.com';
+  const telegramId = '@upvotezone_support';
+  const email = 'support@upvotezone.com';
 
   const copyToClipboard = (text: string, type: string) => {
     navigator.clipboard.writeText(text).then(() => {

@@ -1,6 +1,6 @@
-# Upvote Backend
+# UpvoteZone Backend
 
-This is the FastAPI backend for the Upvote frontend application. It provides all the necessary endpoints for user management, orders, and payments.
+This is the FastAPI backend for the UpvoteZone frontend application. It provides all the necessary endpoints for user management, orders, and payments.
 
 ## Setup
 

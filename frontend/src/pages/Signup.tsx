@@ -64,12 +64,12 @@ const Signup: React.FC = () => {
           <CardHeader className="space-y-1">
             <div className="flex justify-center mb-4">
               <div className="gradient-primary text-white font-bold text-2xl p-3 rounded-md">
-                UH
+                UZ
               </div>
             </div>
             <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
             <CardDescription className="text-center">
-              Enter your information to get started with UpvoteHub
+              Enter your information to get started with UpvoteZone
             </CardDescription>
           </CardHeader>
           <CardContent>
