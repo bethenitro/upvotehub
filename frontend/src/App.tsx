@@ -25,6 +25,7 @@ import NewOrder from "@/pages/NewOrder";
 import OrdersHistory from "@/pages/OrdersHistory";
 import PaymentHistory from "@/pages/PaymentHistory";
 import TopUpAccount from "@/pages/TopUpAccount";
+import Help from "@/pages/Help";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ const App = () => (
                 <Route path="orders/history" element={<OrdersHistory />} />
                 <Route path="payments/history" element={<PaymentHistory />} />
                 <Route path="account/topup" element={<TopUpAccount />} />
+                <Route path="help" element={<Help />} />
               </Route>
 
               {/* 404 page */}

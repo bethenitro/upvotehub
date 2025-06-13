@@ -2,7 +2,7 @@
 import React from 'react';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/context/AuthContext';
-import { Bell, Menu, LogOut } from 'lucide-react';
+import { Menu, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ThemeToggle from '../ThemeToggle';
 
@@ -26,10 +26,6 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
       
       <div className="flex items-center gap-4">
         <ThemeToggle />
-        
-        <Button variant="outline" size="icon">
-          <Bell size={18} />
-        </Button>
         
         <div className="flex items-center gap-2">
           <div className="hidden md:block">

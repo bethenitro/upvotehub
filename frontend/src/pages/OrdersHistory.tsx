@@ -51,7 +51,8 @@ import {
   Calendar,
   DollarSign,
   TrendingUp,
-  RotateCcw
+  RotateCcw,
+  HelpCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -158,6 +159,10 @@ const OrdersHistory = () => {
         }
       }
     });
+  };
+
+  const handleGetSupport = () => {
+    navigate('/help');
   };
 
   // Copy to clipboard
@@ -670,7 +675,10 @@ const OrdersHistory = () => {
                                 <RotateCcw className="h-4 w-4 mr-2" />
                                 Reorder
                               </DropdownMenuItem>
-                              <DropdownMenuItem>Get Support</DropdownMenuItem>
+                              <DropdownMenuItem onClick={handleGetSupport}>
+                                <HelpCircle className="h-4 w-4 mr-2" />
+                                Get Support
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
