@@ -237,6 +237,7 @@ export const api = {
     createOrder: async (orderData: {
       redditUrl: string,
       upvotes: number,
+      upvotesPerMinute?: number,
     }) => {
       try {
         const response = await fetch(`${API_BASE_URL}/api/orders`, {
@@ -245,6 +246,7 @@ export const api = {
           body: JSON.stringify({
             reddit_url: orderData.redditUrl,
             upvotes: orderData.upvotes,
+            upvotes_per_minute: orderData.upvotesPerMinute || 1,
           }),
         });
 
@@ -265,6 +267,7 @@ export const api = {
           createdAt: new Date().toISOString(),
           completedAt: null,
           cost: orderData.upvotes * 0.8,
+          upvotesPerMinute: orderData.upvotesPerMinute || 1,
           ...orderData
         };
         

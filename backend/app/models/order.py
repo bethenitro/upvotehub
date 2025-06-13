@@ -7,6 +7,7 @@ from .user import PyObjectId
 class OrderBase(BaseModel):
     reddit_url: HttpUrl
     upvotes: int
+    upvotes_per_minute: Optional[int] = Field(default=1, ge=1, le=10)
     type: Literal["one-time"] = "one-time"
 
 class OrderCreate(OrderBase):

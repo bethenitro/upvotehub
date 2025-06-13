@@ -45,6 +45,7 @@ interface Order {
   type: string;
   redditUrl: string;
   upvotes: number;
+  upvotesPerMinute?: number;
   status: string;
   createdAt: string;
   completedAt?: string; // Make completedAt optional
@@ -176,6 +177,7 @@ const OrdersHistory = () => {
                     <TableHead>Type</TableHead>
                     <TableHead>Reddit URL</TableHead>
                     <TableHead>Upvotes</TableHead>
+                    <TableHead>Delivery Rate</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Completed</TableHead>
@@ -186,7 +188,7 @@ const OrdersHistory = () => {
                 <TableBody>
                   {filteredOrders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
+                      <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
                         No orders found
                       </TableCell>
                     </TableRow>
@@ -206,6 +208,7 @@ const OrdersHistory = () => {
                           </a>
                         </TableCell>
                         <TableCell>{order.upvotes}</TableCell>
+                        <TableCell>{order.upvotesPerMinute || 1}/min</TableCell>
                         <TableCell><StatusBadge status={order.status} /></TableCell>
                         <TableCell>{formatDate(order.createdAt)}</TableCell>
                         <TableCell>{formatDate(order.completedAt)}</TableCell>

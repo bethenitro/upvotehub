@@ -24,6 +24,7 @@ class OrderService:
             user_id=ObjectId(user_id),
             reddit_url=order_data["redditUrl"],
             upvotes=order_data["upvotes"],
+            upvotes_per_minute=order_data.get("upvotes_per_minute", 1),
             cost=cost
         )
         
@@ -44,7 +45,8 @@ class OrderService:
             script_input = {
                 "order_id": str(order.id),
                 "reddit_url": order.reddit_url,
-                "upvotes": order.upvotes
+                "upvotes": order.upvotes,
+                "upvotes_per_minute": order.upvotes_per_minute
             }
             
             # Run the script

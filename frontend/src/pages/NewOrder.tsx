@@ -15,6 +15,7 @@ const NewOrder = () => {
   const navigate = useNavigate();
   const [redditUrl, setRedditUrl] = useState('');
   const [upvotes, setUpvotes] = useState(20);
+  const [upvotesPerMinute, setUpvotesPerMinute] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   
@@ -56,7 +57,8 @@ const NewOrder = () => {
       
       const result = await api.orders.createOrder({
         redditUrl,
-        upvotes
+        upvotes,
+        upvotesPerMinute
       });
       
       if (result.success) {
@@ -102,6 +104,10 @@ const NewOrder = () => {
                 <div className="flex justify-between mb-2">
                   <span className="text-gray-500">Upvotes:</span>
                   <span>{upvotes}</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-500">Delivery Rate:</span>
+                  <span>{upvotesPerMinute} per minute</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Cost:</span>
@@ -171,6 +177,30 @@ const NewOrder = () => {
                     <span>100</span>
                   </div>
                 </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <label htmlFor="upvotes-per-minute" className="text-sm font-medium">
+                      Upvotes per Minute
+                    </label>
+                    <span>{upvotesPerMinute} per minute</span>
+                  </div>
+                  <Slider
+                    id="upvotes-per-minute"
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={[upvotesPerMinute]}
+                    onValueChange={(value) => setUpvotesPerMinute(value[0])}
+                  />
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>1</span>
+                    <span>10</span>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Controls the delivery speed of upvotes (slower rates appear more natural)
+                  </p>
+                </div>
               </form>
             </CardContent>
             <CardFooter className="flex justify-between">
@@ -206,6 +236,10 @@ const NewOrder = () => {
                 <div className="flex justify-between mb-2">
                   <span className="text-gray-500">Upvotes:</span>
                   <span>{upvotes}</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-500">Delivery Rate:</span>
+                  <span>{upvotesPerMinute} per minute</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Cost:</span>
