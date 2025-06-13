@@ -11,7 +11,6 @@ UpvoteHub is a service for purchasing Reddit upvotes for your posts. This fronte
 
 - **User Dashboard**: View account overview, activity charts, and stats
 - **New Orders**: Place one-time upvote orders for Reddit posts
-- **Auto Orders**: Schedule recurring upvotes for important content
 - **Order History**: Track past and current orders with filtering and sorting
 - **Payment History**: View all transactions and download receipts
 - **Top Up Account**: Add credits to your account using various payment methods
@@ -78,7 +77,6 @@ upvotehub/
 
 - `/` - Dashboard (User Panel)
 - `/order/new` - New Order form
-- `/orders/auto` - Auto Orders management
 - `/orders/history` - Order History table
 - `/payments/history` - Payment History table
 - `/account/topup` - Top Up Account form

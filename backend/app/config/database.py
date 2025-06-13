@@ -25,6 +25,5 @@ class Database:
 class Collections:
     USERS = "users"
     ORDERS = "orders"
-    AUTO_ORDERS = "auto_orders"
     PAYMENTS = "payments"
     ACCOUNT_ACTIVITY = "account_activity" 

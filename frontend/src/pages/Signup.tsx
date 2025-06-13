@@ -50,7 +50,7 @@ const Signup: React.FC = () => {
     try {
       const success = await signup(username, email, password);
       if (success) {
-        navigate('/');
+        navigate('/dashboard');
       }
     } finally {
       setIsSubmitting(false);

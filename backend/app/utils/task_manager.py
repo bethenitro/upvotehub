@@ -17,9 +17,6 @@ class TaskManager:
             return
 
         self.running = True
-        self.tasks['auto_order_scheduler'] = asyncio.create_task(
-            self._auto_order_scheduler()
-        )
         self.tasks['payment_status_checker'] = asyncio.create_task(
             self._payment_status_checker()
         )
@@ -43,68 +40,6 @@ class TaskManager:
                 pass
 
         logger.info("background_tasks_stopped")
-
-    async def _auto_order_scheduler(self):
-        """Schedule and execute auto orders"""
-        while self.running:
-            try:
-                db = Database.get_db()
-                now = datetime.utcnow()
-
-                # Find auto orders that are due
-                cursor = db[Collections.AUTO_ORDERS].find({
-                    "status": "active",
-                    "next_run_at": {"$lte": now}
-                })
-
-                async for auto_order in cursor:
-                    try:
-                        # Create a new order from the auto order
-                        order_data = {
-                            "redditUrl": auto_order["reddit_url"],
-                            "upvotes": auto_order["upvotes"]
-                        }
-                        
-                        # Create the order
-                        order = await OrderService.create_order(
-                            str(auto_order["user_id"]),
-                            order_data
-                        )
-
-                        # Update auto order
-                        next_run = now
-                        if auto_order["frequency"] == "daily":
-                            next_run += timedelta(days=1)
-                        elif auto_order["frequency"] == "weekly":
-                            next_run += timedelta(weeks=1)
-                        else:  # monthly
-                            next_run += timedelta(days=30)
-
-                        await db[Collections.AUTO_ORDERS].update_one(
-                            {"_id": auto_order["_id"]},
-                            {
-                                "$set": {
-                                    "last_run_at": now,
-                                    "next_run_at": next_run
-                                }
-                            }
-                        )
-
-                        logger.info("auto_order_executed",
-                            auto_order_id=str(auto_order["_id"]),
-                            order_id=str(order.id)
-                        )
-
-                    except Exception as e:
-                        logger.error("auto_order_execution_failed",
-                            auto_order_id=str(auto_order["_id"]),
-                            error=str(e)
-                        )
-
-            except Exception as e:
-                logger.error("auto_order_scheduler_error", error=str(e))
-
-            await asyncio.sleep(60)  # Check every minute
 
     async def _payment_status_checker(self):
         """Check and update payment statuses"""

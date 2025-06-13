@@ -5,7 +5,6 @@ import { useApp } from '@/context/AppContext';
 import { 
   Home, 
   PlusCircle, 
-  Clock, 
   History, 
   CreditCard,
   Wallet,
@@ -51,10 +50,6 @@ const Sidebar = () => {
         <NavLink to="/order/new" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
           <PlusCircle size={18} />
           <span>New Order</span>
-        </NavLink>
-        <NavLink to="/orders/auto" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-          <Clock size={18} />
-          <span>Auto Orders</span>
         </NavLink>
         <NavLink to="/orders/history" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
           <History size={18} />

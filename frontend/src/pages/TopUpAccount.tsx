@@ -432,7 +432,7 @@ const TopUpAccount = () => {
                 <h4 className="font-medium mb-2">Credits Usage</h4>
                 <ul className="list-disc pl-5 space-y-1">
                   <li>One-time orders: from 0.8 credits per upvote</li>
-                  <li>Auto orders: from 0.7 credits per upvote</li>
+                  <li>Bulk orders get better rates</li>
                   <li>Credits never expire</li>
                   <li>Larger packages include bonus credits</li>
                 </ul>

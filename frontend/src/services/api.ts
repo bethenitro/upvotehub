@@ -1,6 +1,6 @@
 
 import { currentUser, accountActivity } from "@/mocks/userMock";
-import { orders, autoOrders } from "@/mocks/ordersMock";
+import { orders } from "@/mocks/ordersMock";
 import { payments } from "@/mocks/paymentsMock";
 
 // Backend API base URL
@@ -232,28 +232,6 @@ export const api = {
     },
     
     /**
-     * Get auto orders
-     */
-    getAutoOrders: async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/orders/auto`, {
-          headers: createHeaders(),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch auto orders');
-        }
-
-        return await response.json();
-      } catch (error) {
-        console.error('Error fetching auto orders:', error);
-        // Fallback to mock data for development
-        await delay(600);
-        return [...autoOrders];
-      }
-    },
-    
-    /**
      * Create new one-time order
      */
     createOrder: async (orderData: {
@@ -293,85 +271,6 @@ export const api = {
         return {
           success: true,
           order: newOrder
-        };
-      }
-    },
-    
-    /**
-     * Create new auto order
-     */
-    createAutoOrder: async (orderData: {
-      redditUrl: string,
-      upvotes: number,
-      frequency: "daily" | "weekly" | "monthly"
-    }) => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/orders/auto`, {
-          method: 'POST',
-          headers: createHeaders(),
-          body: JSON.stringify({
-            reddit_url: orderData.redditUrl,
-            upvotes: orderData.upvotes,
-            frequency: orderData.frequency,
-          }),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.detail || 'Failed to create auto order');
-        }
-
-        return await response.json();
-      } catch (error) {
-        console.error('Error creating auto order:', error);
-        // Fallback for development
-        await delay(1200);
-        
-        const costMap = {
-          "daily": 0.7,
-          "weekly": 0.75,
-          "monthly": 0.8
-        };
-        
-        const newAutoOrder = {
-          id: `auto_${Math.floor(Math.random() * 1000)}`,
-          status: "active",
-          createdAt: new Date().toISOString(),
-          nextRunAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          costPerRun: orderData.upvotes * costMap[orderData.frequency],
-          ...orderData
-        };
-        
-        return {
-          success: true,
-          order: newAutoOrder
-        };
-      }
-    },
-    
-    /**
-     * Cancel an auto order
-     */
-    cancelAutoOrder: async (orderId: string) => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/orders/auto/${orderId}`, {
-          method: 'DELETE',
-          headers: createHeaders(),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.detail || 'Failed to cancel auto order');
-        }
-
-        return await response.json();
-      } catch (error) {
-        console.error('Error canceling auto order:', error);
-        // Fallback for development
-        await delay(800);
-        return {
-          success: true,
-          message: `Auto order ${orderId} has been cancelled.`
         };
       }
     }

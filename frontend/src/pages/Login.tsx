@@ -22,7 +22,7 @@ const Login: React.FC = () => {
     try {
       const success = await login(email, password);
       if (success) {
-        navigate('/');
+        navigate('/dashboard');
       }
     } finally {
       setIsSubmitting(false);

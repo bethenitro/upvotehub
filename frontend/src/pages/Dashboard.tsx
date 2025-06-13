@@ -152,9 +152,9 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="bg-upvote-gray-100 p-3 rounded-md">
-              <h3 className="font-medium mb-1">Auto Orders</h3>
+              <h3 className="font-medium mb-1">Order Timing</h3>
               <p className="text-sm text-gray-600">
-                Set up recurring upvotes for your most important Reddit posts.
+                Space out your orders to maximize the natural appearance of upvotes.
               </p>
             </div>
             <div className="bg-upvote-gray-100 p-3 rounded-md">

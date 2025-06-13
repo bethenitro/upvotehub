@@ -22,7 +22,6 @@ import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
 import NewOrder from "@/pages/NewOrder";
-import AutoOrders from "@/pages/AutoOrders";
 import OrdersHistory from "@/pages/OrdersHistory";
 import PaymentHistory from "@/pages/PaymentHistory";
 import TopUpAccount from "@/pages/TopUpAccount";
@@ -57,10 +56,9 @@ const App = () => (
                     <Layout />
                   </AppProvider>
                 </ProtectedRoute>
-              }>
+              }              >
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="order/new" element={<NewOrder />} />
-                <Route path="orders/auto" element={<AutoOrders />} />
                 <Route path="orders/history" element={<OrdersHistory />} />
                 <Route path="payments/history" element={<PaymentHistory />} />
                 <Route path="account/topup" element={<TopUpAccount />} />

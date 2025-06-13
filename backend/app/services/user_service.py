@@ -5,7 +5,7 @@ from ..config.database import Database, Collections
 from ..utils.logger import logger
 from ..models.user import UserInDB, UserCreate, AccountActivity
 from ..models.payment import PaymentInDB
-from ..models.order import OrderInDB, AutoOrderInDB
+from ..models.order import OrderInDB
 
 class UserService:
     @staticmethod

@@ -42,10 +42,7 @@ Once the server is running, you can access:
 ### Order Endpoints
 - `GET /api/orders` - Get all orders
 - `GET /api/orders/history` - Get orders history
-- `GET /api/orders/auto` - Get auto orders
 - `POST /api/orders` - Create new one-time order
-- `POST /api/orders/auto` - Create new auto order
-- `DELETE /api/orders/auto/{order_id}` - Cancel an auto order
 
 ### Payment Endpoints
 - `GET /api/payments` - Get payment history

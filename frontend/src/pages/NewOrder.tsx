@@ -245,20 +245,6 @@ const NewOrder = () => {
               )}
             </CardContent>
           </Card>
-          
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Need More Upvotes?</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-500 mb-4">
-                Consider setting up an auto order to get regular upvotes for your most important content.
-              </p>
-              <Button variant="outline" className="w-full" onClick={() => navigate('/orders/auto')}>
-                Create Auto Order
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
