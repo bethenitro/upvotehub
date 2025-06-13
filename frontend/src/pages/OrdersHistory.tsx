@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
 import {
   Card,
@@ -49,7 +50,8 @@ import {
   ExternalLink,
   Calendar,
   DollarSign,
-  TrendingUp
+  TrendingUp,
+  RotateCcw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -85,6 +87,7 @@ const OrdersHistory = () => {
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   const { data: ordersData, isLoading, error } = useQuery({
     queryKey: ['orders'],
@@ -142,6 +145,19 @@ const OrdersHistory = () => {
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order);
     setIsDetailsModalOpen(true);
+  };
+
+  // Handle reorder - navigate to new order page with pre-filled data
+  const handleReorder = (order: Order) => {
+    navigate('/order/new', {
+      state: {
+        reorderData: {
+          redditUrl: order.reddit_url,
+          upvotes: order.upvotes,
+          upvotesPerMinute: order.upvotes_per_minute || 1
+        }
+      }
+    });
   };
 
   // Copy to clipboard
@@ -427,10 +443,12 @@ const OrdersHistory = () => {
             </Button>
             <Button
               onClick={() => {
-                // TODO: Implement reorder functionality
-                console.log('Reorder:', order);
+                handleReorder(order);
+                setIsDetailsModalOpen(false);
               }}
+              className="flex items-center gap-2"
             >
+              <RotateCcw className="h-4 w-4" />
               Reorder
             </Button>
           </DialogFooter>
@@ -648,7 +666,10 @@ const OrdersHistory = () => {
                               <DropdownMenuItem onClick={() => handleViewDetails(order)}>
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem>Reorder</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleReorder(order)}>
+                                <RotateCcw className="h-4 w-4 mr-2" />
+                                Reorder
+                              </DropdownMenuItem>
                               <DropdownMenuItem>Get Support</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

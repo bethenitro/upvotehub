@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { api } from '@/services/api';
 import { toast } from "@/components/ui/use-toast";
@@ -8,16 +8,32 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { CheckCircle, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const NewOrder = () => {
   const { user, refreshUser } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
   const [redditUrl, setRedditUrl] = useState('');
   const [upvotes, setUpvotes] = useState(20);
   const [upvotesPerMinute, setUpvotesPerMinute] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [isReorder, setIsReorder] = useState(false);
+
+  // Handle reorder data from navigation state
+  useEffect(() => {
+    const reorderData = location.state?.reorderData;
+    if (reorderData) {
+      setRedditUrl(reorderData.redditUrl || '');
+      setUpvotes(reorderData.upvotes || 20);
+      setUpvotesPerMinute(reorderData.upvotesPerMinute || 1);
+      setIsReorder(true);
+      
+      // Clear the state to prevent re-filling on page refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
   
   // Calculate cost based on upvotes (0.8 credits per upvote)
   const cost = upvotes * 0.8;
@@ -140,6 +156,25 @@ const NewOrder = () => {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">New Order</h1>
+      
+      {isReorder && (
+        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-blue-600" />
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+              Order details have been pre-filled from your previous order. You can modify them as needed.
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsReorder(false)}
+              className="ml-auto text-blue-600 hover:text-blue-800"
+            >
+              ×
+            </Button>
+          </div>
+        </div>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
