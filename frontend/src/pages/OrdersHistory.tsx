@@ -24,6 +24,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -35,7 +44,12 @@ import {
   Clock, 
   AlertCircle, 
   XCircle,
-  X
+  X,
+  Copy,
+  ExternalLink,
+  Calendar,
+  DollarSign,
+  TrendingUp
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -69,6 +83,8 @@ const OrdersHistory = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   const { data: ordersData, isLoading, error } = useQuery({
     queryKey: ['orders'],
@@ -121,6 +137,22 @@ const OrdersHistory = () => {
 
     return sorted;
   }, [orders, searchQuery, filterBy, sortBy]);
+
+  // Handle view details
+  const handleViewDetails = (order: Order) => {
+    setSelectedOrder(order);
+    setIsDetailsModalOpen(true);
+  };
+
+  // Copy to clipboard
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // Successfully copied to clipboard
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
 
   // Status badge component
   const StatusBadge = ({ status }: { status: string }) => {
@@ -176,6 +208,235 @@ const OrdersHistory = () => {
       default:
         return <span className="text-muted-foreground italic">Pending</span>;
     }
+  };
+
+  // Order Details Modal Component
+  const OrderDetailsModal = ({ order }: { order: Order | null }) => {
+    if (!order) return null;
+
+    return (
+      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              Order Details
+              <StatusBadge status={order.status} />
+            </DialogTitle>
+            <DialogDescription>
+              Complete information for order {order.id.slice(0, 8)}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Basic Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Order ID</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <code className="flex-1 px-2 py-1 bg-muted rounded text-sm font-mono">
+                      {order.id}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(order.id)}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Order Type</label>
+                  <p className="mt-1 capitalize font-medium">{order.type}</p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Target Upvotes</label>
+                  <p className="mt-1 font-medium">{order.upvotes.toLocaleString()}</p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Delivery Rate</label>
+                  <p className="mt-1 font-medium">{order.upvotes_per_minute || 1} upvotes/min</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Cost</label>
+                  <p className="mt-1 font-medium flex items-center gap-1">
+                    <DollarSign className="h-4 w-4" />
+                    {order.cost.toFixed(2)} credits
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Progress</label>
+                  <div className="mt-1">
+                    {order.upvotes_processed !== undefined ? (
+                      <div className="space-y-1">
+                        <p className="font-medium">
+                          {order.upvotes_processed}/{order.upvotes} upvotes
+                        </p>
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div
+                            className="bg-upvote-primary h-2 rounded-full transition-all"
+                            style={{
+                              width: `${((order.upvotes_processed / order.upvotes) * 100)}%`
+                            }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {((order.upvotes_processed / order.upvotes) * 100).toFixed(1)}% complete
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">Not started</p>
+                    )}
+                  </div>
+                </div>
+
+                {order.payment_id && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Payment ID</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className="flex-1 px-2 py-1 bg-muted rounded text-sm font-mono text-xs">
+                        {order.payment_id}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(order.payment_id!)}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Reddit URL */}
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Reddit URL</label>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1 px-3 py-2 bg-muted rounded text-sm break-all">
+                  {order.reddit_url}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(order.reddit_url)}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  asChild
+                >
+                  <a
+                    href={order.reddit_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </Button>
+              </div>
+            </div>
+
+            {/* Timeline */}
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-3 block">Timeline</label>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Created</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(order.created_at)}</p>
+                  </div>
+                </div>
+
+                {order.started_at && (
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded">
+                    <TrendingUp className="h-4 w-4 text-blue-600" />
+                    <div>
+                      <p className="text-sm font-medium">Started</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(order.started_at)}</p>
+                    </div>
+                  </div>
+                )}
+
+                {order.completed_at && (
+                  <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/20 rounded">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium">Completed</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(order.completed_at)}</p>
+                    </div>
+                  </div>
+                )}
+
+                {order.cancelled_at && (
+                  <div className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-950/20 rounded">
+                    <XCircle className="h-4 w-4 text-red-600" />
+                    <div>
+                      <p className="text-sm font-medium">Cancelled</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(order.cancelled_at)}</p>
+                    </div>
+                  </div>
+                )}
+
+                {order.paused_at && (
+                  <div className="flex items-center gap-3 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded">
+                    <Clock className="h-4 w-4 text-yellow-600" />
+                    <div>
+                      <p className="text-sm font-medium">Paused</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(order.paused_at)}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {order.error_message && (
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Error Message</label>
+                <div className="mt-1 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded">
+                  <p className="text-sm text-red-700 dark:text-red-300">{order.error_message}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Payment Information */}
+            {order.card_last4 && (
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Payment Method</label>
+                <p className="mt-1 text-sm">Card ending in {order.card_last4}</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDetailsModalOpen(false)}>
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                // TODO: Implement reorder functionality
+                console.log('Reorder:', order);
+              }}
+            >
+              Reorder
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
   };
 
   return (
@@ -384,7 +645,9 @@ const OrdersHistory = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>View Details</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleViewDetails(order)}>
+                                View Details
+                              </DropdownMenuItem>
                               <DropdownMenuItem>Reorder</DropdownMenuItem>
                               <DropdownMenuItem>Get Support</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -399,6 +662,9 @@ const OrdersHistory = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Order Details Modal */}
+      <OrderDetailsModal order={selectedOrder} />
     </div>
   );
 };
