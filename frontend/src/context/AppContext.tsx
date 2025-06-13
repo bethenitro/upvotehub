@@ -11,9 +11,9 @@ interface User {
   joinedDate: string;
   profileImage: string;
   stats: {
-    totalOrders: number;
-    activeOrders: number;
-    completedOrders: number;
+    total_orders: number;
+    active_orders: number;
+    completed_orders: number;
   };
 }
 
@@ -37,8 +37,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const loadUser = async () => {
     try {
       setLoading(true);
-      const userData = await api.user.getCurrentUser();
-      setUser(userData);
+      
+      // Fetch user data and stats in parallel
+      const [userData, statsData] = await Promise.all([
+        api.user.getCurrentUser(),
+        api.user.getUserStats()
+      ]);
+      
+      // Combine user data with stats
+      const userWithStats = {
+        ...userData,
+        stats: statsData.stats
+      };
+      
+      setUser(userWithStats);
     } catch (error) {
       toast({
         title: "Error",

@@ -76,15 +76,18 @@ class UserService:
             if end_date is None:
                 end_date = datetime.utcnow()
 
+            print(f"DEBUG: Querying orders from {start_date} to {end_date}")
+            print(f"DEBUG: User ID: {user_id}")
+
             # Get all orders in the date range
             orders = await db[Collections.ORDERS].find({
-                "user_id": user_id,
+                "user_id": ObjectId(user_id),
                 "created_at": {"$gte": start_date, "$lte": end_date}
             }).to_list(None)
 
             # Get all payments in the date range
             payments = await db[Collections.PAYMENTS].find({
-                "user_id": user_id,
+                "user_id": ObjectId(user_id),
                 "created_at": {"$gte": start_date, "$lte": end_date}
             }).to_list(None)
 
@@ -99,16 +102,36 @@ class UserService:
                 }
                 current_date += timedelta(days=1)
 
-            # Count orders per day
+            # Count orders per day and sum order costs
             for order in orders:
                 date_key = order["created_at"].strftime("%Y-%m-%d")
-                activity_by_date[date_key]["orders"] += 1
+                
+                if date_key in activity_by_date:
+                    activity_by_date[date_key]["orders"] += 1
+                    # Add the cost of the order as credits spent
+                    # Check for both 'cost' and 'total_cost' fields
+                    order_cost = order.get("cost") or order.get("total_cost", 0)
+                    if order_cost:
+                        activity_by_date[date_key]["credits"] += order_cost
+                        print(f"DEBUG: Added {order_cost} credits for {date_key}")
+                    else:
+                        print(f"DEBUG: No cost found for order {order.get('_id')}")
+                else:
+                    # If the order date is outside our range, create a new entry
+                    order_cost = order.get("cost") or order.get("total_cost", 0)
+                    activity_by_date[date_key] = {
+                        "orders": 1,
+                        "credits": order_cost
+                    }
+                    print(f"DEBUG: Created new activity entry for {date_key} with cost {order_cost}")
+                    logger.info(f"Created new activity entry for {date_key}")
 
-            # Sum credits per day
+            # Also add credits from completed payments (top-ups)
             for payment in payments:
-                if payment["status"] == "completed":
+                if payment.get("status") == "completed":
                     date_key = payment["created_at"].strftime("%Y-%m-%d")
-                    activity_by_date[date_key]["credits"] += payment["amount"]
+                    # Note: This adds credits gained, not spent
+                    # We might want to track this separately in the future
 
             # Convert to AccountActivity objects
             activities = []

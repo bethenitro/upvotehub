@@ -129,6 +129,26 @@ export const api = {
     },
     
     /**
+     * Get user statistics
+     */
+    getUserStats: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/users/stats`, {
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch user stats');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching user stats:', error);
+        throw error;
+      }
+    },
+    
+    /**
      * Get user account activity
      */
     getAccountActivity: async (startDate?: string, endDate?: string) => {

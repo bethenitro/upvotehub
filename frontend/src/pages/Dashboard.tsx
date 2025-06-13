@@ -21,10 +21,21 @@ const Dashboard = () => {
     const fetchActivity = async () => {
       try {
         setLoadingActivity(true);
-        const data = await api.user.getAccountActivity();
-        setActivityData(data);
+        const statsData = await api.user.getUserStats();
+        console.log('Raw stats data:', statsData);
+        
+        // Transform the activity data to ensure proper formatting
+        const transformedActivity = (statsData.activity || []).map((item: any) => ({
+          date: item.date,
+          orders: item.orders || 0,
+          credits: item.credits || 0
+        }));
+        
+        console.log('Transformed activity data:', transformedActivity);
+        setActivityData(transformedActivity);
       } catch (error) {
         console.error('Failed to fetch activity:', error);
+        setActivityData([]);
       } finally {
         setLoadingActivity(false);
       }
@@ -56,7 +67,7 @@ const Dashboard = () => {
           <CardContent>
             <div className="flex items-center">
               <TrendingUp className="h-8 w-8 text-upvote-primary mr-4" />
-              <span className="text-3xl font-bold">{user?.stats.totalOrders}</span>
+              <span className="text-3xl font-bold">{user?.stats?.total_orders || 0}</span>
             </div>
           </CardContent>
         </Card>
@@ -68,7 +79,7 @@ const Dashboard = () => {
           <CardContent>
             <div className="flex items-center">
               <Clock className="h-8 w-8 text-upvote-warning mr-4" />
-              <span className="text-3xl font-bold">{user?.stats.activeOrders}</span>
+              <span className="text-3xl font-bold">{user?.stats?.active_orders || 0}</span>
             </div>
           </CardContent>
         </Card>
@@ -80,7 +91,7 @@ const Dashboard = () => {
           <CardContent>
             <div className="flex items-center">
               <CheckCircle className="h-8 w-8 text-upvote-success mr-4" />
-              <span className="text-3xl font-bold">{user?.stats.completedOrders}</span>
+              <span className="text-3xl font-bold">{user?.stats?.completed_orders || 0}</span>
             </div>
           </CardContent>
         </Card>
@@ -96,6 +107,13 @@ const Dashboard = () => {
             <div className="flex items-center justify-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-upvote-primary" />
             </div>
+          ) : activityData.length === 0 ? (
+            <div className="flex items-center justify-center h-64 text-gray-500">
+              <div className="text-center">
+                <p className="text-lg mb-2">No activity data available</p>
+                <p className="text-sm">Create some orders to see your activity here.</p>
+              </div>
+            </div>
           ) : (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -109,7 +127,12 @@ const Dashboard = () => {
                     }}
                   />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip 
+                    labelFormatter={(value) => {
+                      const date = new Date(value);
+                      return date.toLocaleDateString();
+                    }}
+                  />
                   <Bar dataKey="orders" fill="#9b87f5" name="Orders" />
                   <Bar dataKey="credits" fill="#7E69AB" name="Credits Spent" />
                 </BarChart>
@@ -136,12 +159,6 @@ const Dashboard = () => {
             <div className="flex justify-between">
               <span className="text-gray-500">Credits Balance:</span>
               <span className="font-medium">{user?.credits.toFixed(2)} credits</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Member Since:</span>
-              <span className="font-medium">
-                {user?.joinedDate && new Date(user.joinedDate).toLocaleDateString()}
-              </span>
             </div>
           </CardContent>
         </Card>
