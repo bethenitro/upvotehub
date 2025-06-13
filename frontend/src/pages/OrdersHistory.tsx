@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import {
@@ -34,7 +34,8 @@ import {
   CheckCircle, 
   Clock, 
   AlertCircle, 
-  XCircle
+  XCircle,
+  X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -60,9 +61,14 @@ interface Order {
   card_last4?: string;
 }
 
+type SortOption = 'newest' | 'oldest' | 'highest-cost' | 'lowest-cost';
+type FilterOption = 'all' | 'completed' | 'active' | 'pending' | 'failed' | 'cancelled';
+
 const OrdersHistory = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [filterBy, setFilterBy] = useState<FilterOption>('all');
 
   const { data: ordersData, isLoading, error } = useQuery({
     queryKey: ['orders'],
@@ -76,11 +82,45 @@ const OrdersHistory = () => {
     }
   }, [ordersData]);
 
-  const filteredOrders = orders.filter((order) =>
-    (order.reddit_url?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-    (order.id?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-    (order.status?.toLowerCase() || '').includes(searchQuery.toLowerCase())
-  );
+  // Filter orders based on search query and status filter
+  const filteredAndSortedOrders = useMemo(() => {
+    let filtered = orders.filter((order) => {
+      // Enhanced search filter - search across multiple fields
+      const searchTerm = searchQuery.toLowerCase();
+      const matchesSearch = !searchQuery || 
+        (order.reddit_url?.toLowerCase() || '').includes(searchTerm) ||
+        (order.id?.toLowerCase() || '').includes(searchTerm) ||
+        (order.status?.toLowerCase() || '').includes(searchTerm) ||
+        (order.type?.toLowerCase() || '').includes(searchTerm) ||
+        order.upvotes.toString().includes(searchTerm) ||
+        order.cost.toString().includes(searchTerm);
+
+      // Status filter
+      const matchesFilter = filterBy === 'all' || 
+        order.status?.toLowerCase() === filterBy ||
+        (filterBy === 'active' && ['processing', 'in-progress'].includes(order.status?.toLowerCase()));
+
+      return matchesSearch && matchesFilter;
+    });
+
+    // Sort the filtered orders
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'oldest':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'highest-cost':
+          return b.cost - a.cost;
+        case 'lowest-cost':
+          return a.cost - b.cost;
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
+  }, [orders, searchQuery, filterBy, sortBy]);
 
   // Status badge component
   const StatusBadge = ({ status }: { status: string }) => {
@@ -147,28 +187,71 @@ const OrdersHistory = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input 
-              placeholder="Search orders..." 
-              className="pl-9 w-full" 
+              placeholder="Search orders, URLs, status, or cost..." 
+              className="pl-9 pr-8 w-full" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                onClick={() => setSearchQuery('')}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
           </div>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" className="relative">
                 <Filter className="h-4 w-4" />
+                {filterBy !== 'all' && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 bg-upvote-primary rounded-full" />
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
               <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>All</DropdownMenuItem>
-              <DropdownMenuItem>Completed</DropdownMenuItem>
-              <DropdownMenuItem>Active</DropdownMenuItem>
-              <DropdownMenuItem>Pending</DropdownMenuItem>
-              <DropdownMenuItem>Failed</DropdownMenuItem>
-              <DropdownMenuItem>Cancelled</DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setFilterBy('all')}
+                className={filterBy === 'all' ? 'bg-accent' : ''}
+              >
+                All
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setFilterBy('completed')}
+                className={filterBy === 'completed' ? 'bg-accent' : ''}
+              >
+                Completed
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setFilterBy('active')}
+                className={filterBy === 'active' ? 'bg-accent' : ''}
+              >
+                Active
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setFilterBy('pending')}
+                className={filterBy === 'pending' ? 'bg-accent' : ''}
+              >
+                Pending
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setFilterBy('failed')}
+                className={filterBy === 'failed' ? 'bg-accent' : ''}
+              >
+                Failed
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setFilterBy('cancelled')}
+                className={filterBy === 'cancelled' ? 'bg-accent' : ''}
+              >
+                Cancelled
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           
@@ -180,18 +263,62 @@ const OrdersHistory = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem>Newest first</DropdownMenuItem>
-              <DropdownMenuItem>Oldest first</DropdownMenuItem>
-              <DropdownMenuItem>Highest cost</DropdownMenuItem>
-              <DropdownMenuItem>Lowest cost</DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setSortBy('newest')}
+                className={sortBy === 'newest' ? 'bg-accent' : ''}
+              >
+                Newest first
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setSortBy('oldest')}
+                className={sortBy === 'oldest' ? 'bg-accent' : ''}
+              >
+                Oldest first
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setSortBy('highest-cost')}
+                className={sortBy === 'highest-cost' ? 'bg-accent' : ''}
+              >
+                Highest cost
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setSortBy('lowest-cost')}
+                className={sortBy === 'lowest-cost' ? 'bg-accent' : ''}
+              >
+                Lowest cost
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          
+          {(searchQuery || filterBy !== 'all') && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearchQuery('');
+                setFilterBy('all');
+              }}
+            >
+              Clear filters
+            </Button>
+          )}
         </div>
       </div>
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle>All Orders</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <CardTitle>All Orders</CardTitle>
+            <div className="text-sm text-muted-foreground">
+              Showing {filteredAndSortedOrders.length} of {orders.length} orders
+              {(searchQuery || filterBy !== 'all') && (
+                <span className="ml-2">
+                  {searchQuery && `• Search: "${searchQuery}"`}
+                  {filterBy !== 'all' && `• Filter: ${filterBy.charAt(0).toUpperCase() + filterBy.slice(1)}`}
+                </span>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -222,14 +349,14 @@ const OrdersHistory = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrders.length === 0 ? (
+                  {filteredAndSortedOrders.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
                         No orders found
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredOrders.map((order) => (
+                    filteredAndSortedOrders.map((order) => (
                       <TableRow key={order.id} className="table-row">
                         <TableCell className="font-mono text-xs">{order.id.slice(0, 8)}</TableCell>
                         <TableCell className="capitalize">{order.type}</TableCell>
