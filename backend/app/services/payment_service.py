@@ -353,3 +353,53 @@ class PaymentService:
         except Exception as e:
             logger.error("get_crypto_payment_status_failed", payment_id=payment_id, error=str(e))
             raise PaymentProcessingError(f"Failed to get payment status: {str(e)}")
+
+    @staticmethod
+    async def cancel_payment(user_id: str, payment_id: str) -> Dict[str, Any]:
+        """Cancel a pending or failed payment"""
+        try:
+            db = Database.get_db()
+            
+            # Find the payment and verify ownership
+            payment = await db[Collections.PAYMENTS].find_one({
+                "_id": ObjectId(payment_id),
+                "user_id": user_id
+            })
+            
+            if not payment:
+                raise PaymentProcessingError("Payment not found")
+            
+            # Check if payment can be cancelled (only pending or failed payments)
+            if payment["status"] not in ["pending", "failed"]:
+                raise PaymentProcessingError(f"Cannot cancel payment with status: {payment['status']}")
+            
+            # Update payment status to cancelled
+            result = await db[Collections.PAYMENTS].update_one(
+                {"_id": ObjectId(payment_id)},
+                {
+                    "$set": {
+                        "status": "cancelled",
+                        "cancelled_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            if result.modified_count == 0:
+                raise PaymentProcessingError("Failed to cancel payment")
+            
+            logger.info("payment_cancelled",
+                payment_id=payment_id,
+                user_id=user_id,
+                previous_status=payment["status"]
+            )
+            
+            return {
+                "success": True,
+                "payment_id": payment_id,
+                "status": "cancelled",
+                "message": "Payment has been cancelled successfully"
+            }
+            
+        except Exception as e:
+            logger.error("cancel_payment_failed", payment_id=payment_id, user_id=user_id, error=str(e))
+            raise PaymentProcessingError(f"Failed to cancel payment: {str(e)}")

@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, Loader2, Bitcoin, ExternalLink } from 'lucide-react';
+import { CheckCircle, Loader2, Bitcoin, ExternalLink, X } from 'lucide-react';
 import { api } from '@/services/api';
 
 const TopUpAccount = () => {
@@ -24,11 +24,13 @@ const TopUpAccount = () => {
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [success, setSuccess] = useState(false);
   const [checkoutLink, setCheckoutLink] = useState<string>('');
   const [paymentId, setPaymentId] = useState<string>('');
   const [lastStatusCheck, setLastStatusCheck] = useState<string>('');
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [currentPaymentStatus, setCurrentPaymentStatus] = useState<string>('');
 
   // Auto-refresh payment status every 30 seconds when payment is pending
   useEffect(() => {
@@ -95,6 +97,7 @@ const TopUpAccount = () => {
         setCheckoutLink(result.checkout_link);
         setPaymentId(result.payment_id);
         setSuccess(true);
+        setCurrentPaymentStatus('pending'); // Set initial status as pending
         setAutoRefreshEnabled(true); // Enable auto-refresh for new payments
         setLastStatusCheck('Payment created - Waiting for completion...');
         
@@ -125,6 +128,9 @@ const TopUpAccount = () => {
       const status = await api.payments.getPaymentStatus(paymentId);
       const currentTime = new Date().toLocaleTimeString();
       
+      // Update current payment status
+      setCurrentPaymentStatus(status.status);
+      
       if (status.status === 'completed') {
         await refreshUser();
         toast({
@@ -136,6 +142,7 @@ const TopUpAccount = () => {
         setPaymentId('');
         setLastStatusCheck('');
         setAutoRefreshEnabled(false);
+        setCurrentPaymentStatus('');
       } else if (status.status === 'failed') {
         toast({
           title: "Payment Failed",
@@ -147,6 +154,7 @@ const TopUpAccount = () => {
         setPaymentId('');
         setLastStatusCheck('');
         setAutoRefreshEnabled(false);
+        setCurrentPaymentStatus('');
       } else if (status.status === 'pending') {
         setLastStatusCheck(`Pending - Last checked at ${currentTime}`);
         setAutoRefreshEnabled(true); // Enable auto-refresh for pending payments
@@ -173,6 +181,41 @@ const TopUpAccount = () => {
       });
     } finally {
       setIsCheckingStatus(false);
+    }
+  };
+
+  // Cancel payment handler
+  const handleCancelPayment = async () => {
+    if (!paymentId) return;
+    
+    try {
+      setIsCancelling(true);
+      
+      const result = await api.payments.cancelPayment(paymentId);
+      
+      if (result.success) {
+        toast({
+          title: "Payment Cancelled",
+          description: "Your payment has been cancelled successfully.",
+        });
+        
+        // Reset the form state
+        setSuccess(false);
+        setCheckoutLink('');
+        setPaymentId('');
+        setLastStatusCheck('');
+        setAutoRefreshEnabled(false);
+        setCurrentPaymentStatus('');
+      }
+    } catch (error) {
+      console.error('Error cancelling payment:', error);
+      toast({
+        title: "Cancel Failed",
+        description: "Unable to cancel payment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -224,6 +267,25 @@ const TopUpAccount = () => {
                         'Check Status'
                       )}
                     </Button>
+                    {(currentPaymentStatus === 'pending' || currentPaymentStatus === 'failed' || (!currentPaymentStatus && paymentId)) && (
+                      <Button 
+                        variant="destructive" 
+                        onClick={handleCancelPayment}
+                        disabled={isCancelling}
+                      >
+                        {isCancelling ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            Cancelling...
+                          </>
+                        ) : (
+                          <>
+                            <X className="h-4 w-4 mr-2" />
+                            Cancel Payment
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </div>
                   {lastStatusCheck && (
                     <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">

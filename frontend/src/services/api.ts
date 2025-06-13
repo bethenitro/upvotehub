@@ -358,6 +358,27 @@ export const api = {
         console.error('Error fetching supported crypto methods:', error);
         return { supported_methods: [] };
       }
+    },
+
+    /**
+     * Cancel a payment
+     */
+    cancelPayment: async (paymentId: string) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/payments/${paymentId}/cancel`, {
+          method: 'POST',
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to cancel payment');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error canceling payment:', error);
+        throw error;
+      }
     }
   }
 };

@@ -158,6 +158,8 @@ const PaymentHistory = () => {
         return 'secondary';
       case 'failed':
         return 'destructive';
+      case 'cancelled':
+        return 'outline';
       case 'refunded':
         return 'outline';
       default:

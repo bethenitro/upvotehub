@@ -59,6 +59,17 @@ async def get_payment_status(
     except Exception as e:
         raise PaymentProcessingError(str(e))
 
+@router.post("/{payment_id}/cancel")
+async def cancel_payment(
+    payment_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Cancel a pending or failed payment"""
+    try:
+        return await PaymentService.cancel_payment(current_user.id, payment_id)
+    except Exception as e:
+        raise PaymentProcessingError(str(e))
+
 @router.post("/btcpay/webhook")
 async def btcpay_webhook(request: Request):
     """Handle BTCPay Server webhooks"""

@@ -7,7 +7,7 @@ from .user import PyObjectId
 class PaymentBase(BaseModel):
     amount: float
     method: Literal["credit_card", "paypal", "crypto", "credits"]
-    status: Literal["pending", "completed", "failed", "refunded"] = "pending"
+    status: Literal["pending", "completed", "failed", "refunded", "cancelled"] = "pending"
     order_id: Optional[str] = None
 
 class PaymentCreate(PaymentBase):
@@ -33,6 +33,7 @@ class PaymentInDB(PaymentBase):
     user_id: str
     created_at: datetime = datetime.utcnow()
     completed_at: Optional[datetime] = None
+    cancelled_at: Optional[datetime] = None
     refund_amount: Optional[float] = None
     refund_reason: Optional[str] = None
     error_message: Optional[str] = None
@@ -43,6 +44,7 @@ class Payment(PaymentBase):
     user_id: str
     created_at: datetime
     completed_at: Optional[datetime] = None
+    cancelled_at: Optional[datetime] = None
     refund_amount: Optional[float] = None
     refund_reason: Optional[str] = None
     error_message: Optional[str] = None
