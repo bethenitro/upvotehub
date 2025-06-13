@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings
 from functools import lru_cache
 import os
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
 
@@ -20,8 +21,18 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
-    # CORS
-    CORS_ORIGINS: list = ["http://localhost:5173"]
+    # CORS - Parse the JSON string from environment variable
+    @property
+    def CORS_ORIGINS(self) -> list:
+        cors_origins = os.getenv("CORS_ORIGINS", '["http://localhost:5173", "http://localhost:8080"]')
+        try:
+            parsed_origins = json.loads(cors_origins)
+            # If the list contains "*", return ["*"] to allow all origins
+            if "*" in parsed_origins:
+                return ["*"]
+            return parsed_origins
+        except:
+            return ["*"]  # Default to allow all origins if parsing fails
     
     # Logging
     LOG_LEVEL: str = "INFO"

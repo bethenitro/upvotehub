@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
+import { api } from "@/services/api";
 
 interface User {
   id: string;
@@ -22,15 +23,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock auth data
-const MOCK_USER = {
-  id: "user_123",
-  username: "redditpro",
-  email: "user@example.com",
-  credits: 125.50,
-  profileImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=redditpro"
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +32,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check if user is logged in from localStorage
     const checkAuthStatus = () => {
       const storedUser = localStorage.getItem('upvotehub_user');
-      if (storedUser) {
+      const storedToken = localStorage.getItem('upvotehub_token');
+      if (storedUser && storedToken) {
         setUser(JSON.parse(storedUser));
       }
       setIsLoading(false);
@@ -53,31 +46,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Call the real API
+      const response = await api.auth.login(email, password);
       
-      // Simple validation - in a real app this would be a backend call
-      if (email.trim() && password.trim()) {
-        // Simulating successful login with mock user
-        setUser(MOCK_USER);
-        localStorage.setItem('upvotehub_user', JSON.stringify(MOCK_USER));
-        toast({
-          title: "Logged in successfully",
-          description: `Welcome back, ${MOCK_USER.username}!`,
-        });
-        return true;
-      }
+      setUser(response.user);
+      toast({
+        title: "Logged in successfully",
+        description: `Welcome back, ${response.user.username}!`,
+      });
+      return true;
       
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Login failed";
       toast({
         title: "Login failed",
-        description: "Invalid email or password",
-        variant: "destructive"
-      });
-      return false;
-    } catch (error) {
-      toast({
-        title: "Login error",
-        description: "Something went wrong. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
       return false;
@@ -90,39 +73,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Call the real API
+      const response = await api.auth.signup(username, email, password);
       
-      // Simple validation - in a real app this would be a backend call
-      if (username.trim() && email.trim() && password.trim()) {
-        // Create a new user based on the mock but with the provided info
-        const newUser = {
-          ...MOCK_USER,
-          username,
-          email,
-          // Generate random avatar based on username
-          profileImage: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`
-        };
-        
-        setUser(newUser);
-        localStorage.setItem('upvotehub_user', JSON.stringify(newUser));
-        toast({
-          title: "Account created",
-          description: "Welcome to UpvoteHub!",
-        });
-        return true;
-      }
+      setUser(response.user);
+      toast({
+        title: "Account created",
+        description: "Welcome to UpvoteHub!",
+      });
+      return true;
       
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Signup failed";
       toast({
         title: "Signup failed",
-        description: "Please fill out all fields",
-        variant: "destructive"
-      });
-      return false;
-    } catch (error) {
-      toast({
-        title: "Signup error",
-        description: "Something went wrong. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
       return false;
@@ -132,8 +97,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    // Call API logout (handles token cleanup)
+    api.auth.logout();
+    
     setUser(null);
-    localStorage.removeItem('upvotehub_user');
     navigate('/login');
     toast({
       title: "Logged out",

@@ -31,6 +31,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    credits: float = 0.0
 
 class UserInDB(UserBase):
     id: str

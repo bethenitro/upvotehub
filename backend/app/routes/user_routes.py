@@ -6,7 +6,7 @@ from ..models.order import Order
 from ..services.user_service import UserService
 from ..services.order_service import OrderService
 from ..utils.exceptions import InsufficientCreditsError
-from .user import get_current_user
+from ..utils.auth import get_current_user
 from ..utils.validators import validate_reddit_url
 
 router = APIRouter()

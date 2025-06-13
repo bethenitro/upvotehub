@@ -4,7 +4,8 @@ from app.middleware.rate_limiter import rate_limiter
 from app.middleware.response_timer import ResponseTimerMiddleware
 from app.utils.task_manager import task_manager
 from app.utils.monitoring import metrics_collector
-from app.routes import user_routes, order_routes, payment_routes
+from app.config.database import Database
+from app.routes import user_routes, order_routes, payment_routes, auth_routes
 from app.config.settings import settings
 
 app = FastAPI(
@@ -13,12 +14,12 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add CORS middleware
+# Add CORS middleware - configured to allow all origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=False,  # Must be False when allow_origins=["*"]
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -28,10 +29,14 @@ app.add_middleware(ResponseTimerMiddleware)
 # Add rate limiter middleware
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
+    # Skip rate limiting for OPTIONS requests (CORS preflight)
+    if request.method == "OPTIONS":
+        return await call_next(request)
     await rate_limiter.check_rate_limit(request)
     return await call_next(request)
 
 # Include routers
+app.include_router(auth_routes.router, prefix="/api/auth", tags=["auth"])
 app.include_router(user_routes.router, prefix="/api/users", tags=["users"])
 app.include_router(order_routes.router, prefix="/api/orders", tags=["orders"])
 app.include_router(payment_routes.router, prefix="/api/payments", tags=["payments"])
@@ -39,6 +44,7 @@ app.include_router(payment_routes.router, prefix="/api/payments", tags=["payment
 @app.on_event("startup")
 async def startup_event():
     """Start background tasks and initialize components"""
+    await Database.connect_db()
     await task_manager.start()
     await metrics_collector.collect_metrics()
 
@@ -46,6 +52,7 @@ async def startup_event():
 async def shutdown_event():
     """Stop background tasks"""
     await task_manager.stop()
+    await Database.close_db()
 
 @app.get("/health")
 async def health_check():

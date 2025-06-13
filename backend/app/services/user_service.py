@@ -19,15 +19,20 @@ class UserService:
         
         # Create user document
         user = UserInDB(
+            id=str(ObjectId()),
             username=user_data.username,
             email=user_data.email,
             credits=user_data.credits,
-            hashed_password=user_data.password  # In production, hash the password
+            hashed_password=user_data.password  # Already hashed in auth route
         )
         
         # Insert into database
-        result = await db[Collections.USERS].insert_one(user.dict(by_alias=True))
-        user.id = result.inserted_id
+        user_dict = user.dict()
+        user_dict["_id"] = ObjectId(user.id)
+        user_dict.pop("id")  # Remove id field as we use _id in MongoDB
+        
+        result = await db[Collections.USERS].insert_one(user_dict)
+        user.id = str(result.inserted_id)
         
         logger.info("user_created", user_id=str(user.id), email=user.email)
         return user
@@ -37,6 +42,7 @@ class UserService:
         db = Database.get_db()
         user_data = await db[Collections.USERS].find_one({"_id": ObjectId(user_id)})
         if user_data:
+            user_data["id"] = str(user_data["_id"])
             return UserInDB(**user_data)
         return None
 
@@ -45,6 +51,7 @@ class UserService:
         db = Database.get_db()
         user_data = await db[Collections.USERS].find_one({"email": email})
         if user_data:
+            user_data["id"] = str(user_data["_id"])
             return UserInDB(**user_data)
         return None
 
@@ -193,4 +200,32 @@ class UserService:
             amount=payment_data["amount"]
         )
         
-        return payment 
+        return payment
+
+    @staticmethod
+    async def update_last_login(user_id: str) -> bool:
+        """Update user's last login timestamp"""
+        try:
+            db = Database.get_db()
+            result = await db[Collections.USERS].update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": {"last_login": datetime.utcnow()}}
+            )
+            return result.modified_count > 0
+        except Exception as e:
+            logger.error("update_last_login_failed", error=str(e))
+            return False
+
+    @staticmethod
+    async def update_last_login(user_id: str) -> bool:
+        """Update user's last login timestamp"""
+        try:
+            db = Database.get_db()
+            result = await db[Collections.USERS].update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": {"last_login": datetime.utcnow()}}
+            )
+            return result.modified_count > 0
+        except Exception as e:
+            logger.error("update_last_login_failed", error=str(e))
+            return False
