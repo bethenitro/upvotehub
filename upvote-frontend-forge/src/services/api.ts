@@ -1,10 +1,12 @@
 
-import { currentUser, accountActivity } from "@/mocks/userMock";
-import { orders, autoOrders } from "@/mocks/ordersMock";
-import { payments } from "@/mocks/paymentsMock";
+import { orders, autoOrders } from "@/mocks/ordersMock"; // currentUser removed
+import { payments } from "@/mocks/paymentsMock"; // accountActivity related to user, but not auth for now
+
+// Define Backend URL
+const API_BASE_URL = 'http://localhost:8000/api';
 
 /**
- * Simulates API request delay
+ * Simulates API request delay - will be removed for signup/login, kept for others for now
  */
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -15,11 +17,49 @@ export const api = {
   // User related endpoints
   user: {
     /**
-     * Get current user information
+     * Get current user information - Commented out as per subtask
      */
+    /*
     getCurrentUser: async () => {
       await delay(500);
+      // This would typically fetch user data if a token is stored
+      // For now, login/signup will provide user data directly to AuthContext
       return { ...currentUser };
+    },
+    */
+
+    signupUser: async (userData: { username: string, email: string, password: string }) => {
+      const response = await fetch(`${API_BASE_URL}/user/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Signup failed, unable to parse error response' }));
+        console.error('Signup failed:', errorData);
+        throw new Error(errorData.detail || 'Signup failed');
+      }
+      return response.json();
+    },
+
+    loginUser: async (credentials: { email: string, password: string }) => {
+      const response = await fetch(`${API_BASE_URL}/user/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Login failed, unable to parse error response' }));
+        console.error('Login failed:', errorData);
+        throw new Error(errorData.detail || 'Login failed');
+      }
+      return response.json();
     },
     
     /**

@@ -6,6 +6,10 @@ from ..utils.logger import logger
 from ..models.user import UserInDB, UserCreate, AccountActivity
 from ..models.payment import PaymentInDB
 from ..models.order import OrderInDB, AutoOrderInDB
+from passlib.context import CryptContext # Added
+
+# Initialize CryptContext
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class UserService:
     @staticmethod
@@ -21,8 +25,8 @@ class UserService:
         user = UserInDB(
             username=user_data.username,
             email=user_data.email,
-            credits=user_data.credits,
-            hashed_password=user_data.password  # In production, hash the password
+            # credits field will use default from UserInDB model (0.0)
+            hashed_password=pwd_context.hash(user_data.password)  # Hash the password
         )
         
         # Insert into database
@@ -31,6 +35,10 @@ class UserService:
         
         logger.info("user_created", user_id=str(user.id), email=user.email)
         return user
+
+    @staticmethod
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+        return pwd_context.verify(plain_password, hashed_password)
 
     @staticmethod
     async def get_user(user_id: str) -> Optional[UserInDB]:

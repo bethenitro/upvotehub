@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/components/ui/use-toast";
+import { api } from '@/services/api'; // Import API service
 
 interface User {
   id: string;
@@ -9,6 +10,8 @@ interface User {
   email: string;
   credits: number;
   profileImage: string;
+  joined_date?: string; // Added from backend
+  last_login?: string;  // Added from backend
 }
 
 interface AuthContextType {
@@ -22,14 +25,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock auth data
-const MOCK_USER = {
-  id: "user_123",
-  username: "redditpro",
-  email: "user@example.com",
-  credits: 125.50,
-  profileImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=redditpro"
-};
+// MOCK_USER constant removed
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -50,34 +46,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
+      const backendUser = await api.user.loginUser({ email, password });
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Simple validation - in a real app this would be a backend call
-      if (email.trim() && password.trim()) {
-        // Simulating successful login with mock user
-        setUser(MOCK_USER);
-        localStorage.setItem('upvotehub_user', JSON.stringify(MOCK_USER));
-        toast({
-          title: "Logged in successfully",
-          description: `Welcome back, ${MOCK_USER.username}!`,
-        });
-        return true;
-      }
-      
+      // Transform backendUser to frontend User interface
+      const frontendUser: User = {
+        id: backendUser.id,
+        username: backendUser.username,
+        email: backendUser.email,
+        credits: backendUser.credits,
+        profileImage: `https://api.dicebear.com/7.x/avataaars/svg?seed=${backendUser.username}`, // Keep dicebear logic
+        joined_date: backendUser.joined_date,
+        last_login: backendUser.last_login,
+      };
+
+      setUser(frontendUser);
+      localStorage.setItem('upvotehub_user', JSON.stringify(frontendUser));
+      toast({
+        title: "Logged in successfully",
+        description: `Welcome back, ${frontendUser.username}!`,
+      });
+      return true;
+    } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         title: "Login failed",
-        description: "Invalid email or password",
-        variant: "destructive"
-      });
-      return false;
-    } catch (error) {
-      toast({
-        title: "Login error",
-        description: "Something went wrong. Please try again.",
+        description: error.message || "Invalid email or password. Please try again.",
         variant: "destructive"
       });
       return false;
@@ -87,42 +82,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signup = async (username: string, email: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Simple validation - in a real app this would be a backend call
-      if (username.trim() && email.trim() && password.trim()) {
-        // Create a new user based on the mock but with the provided info
-        const newUser = {
-          ...MOCK_USER,
-          username,
-          email,
-          // Generate random avatar based on username
-          profileImage: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`
-        };
+      const backendUser = await api.user.signupUser({ username, email, password });
+
+      // Transform backendUser to frontend User interface
+      const frontendUser: User = {
+        id: backendUser.id,
+        username: backendUser.username,
+        email: backendUser.email,
+        credits: backendUser.credits,
+        profileImage: `https://api.dicebear.com/7.x/avataaars/svg?seed=${backendUser.username}`, // Keep dicebear logic
+        joined_date: backendUser.joined_date,
+        last_login: backendUser.last_login,
+      };
         
-        setUser(newUser);
-        localStorage.setItem('upvotehub_user', JSON.stringify(newUser));
-        toast({
-          title: "Account created",
-          description: "Welcome to UpvoteHub!",
-        });
-        return true;
-      }
-      
+      setUser(frontendUser);
+      localStorage.setItem('upvotehub_user', JSON.stringify(frontendUser));
+      toast({
+        title: "Account created",
+        description: "Welcome to UpvoteHub!",
+      });
+      return true;
+    } catch (error: any) {
+      console.error("Signup error:", error);
       toast({
         title: "Signup failed",
-        description: "Please fill out all fields",
-        variant: "destructive"
-      });
-      return false;
-    } catch (error) {
-      toast({
-        title: "Signup error",
-        description: "Something went wrong. Please try again.",
+        description: error.message || "Could not create account. Please try again.",
         variant: "destructive"
       });
       return false;
