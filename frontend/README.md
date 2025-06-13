@@ -22,8 +22,9 @@ UpvoteHub is a service for purchasing Reddit upvotes for your posts. This fronte
 - **State Management**: React Context API
 - **Routing**: React Router v6
 - **UI Components**: shadcn/ui
-- **API Integration**: Stubbed API services for frontend development
+- **Backend Integration**: Full API integration with FastAPI backend
 - **Charts**: Recharts for data visualization
+- **Authentication**: JWT-based authentication
 - **Testing**: Jest and React Testing Library
 
 ## Getting Started

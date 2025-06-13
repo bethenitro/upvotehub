@@ -8,7 +8,7 @@ from ..utils.exceptions import (
     InvalidPaymentMethodError,
     InsufficientCreditsError
 )
-from .user import get_current_user
+from ..utils.auth import get_current_user
 from ..utils.validators import validate_payment_amount, validate_credit_card, validate_crypto_address
 
 router = APIRouter()

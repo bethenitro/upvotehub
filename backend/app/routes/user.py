@@ -3,31 +3,27 @@ from typing import List, Dict, Any
 from ..services.user_service import UserService
 from ..models.user import User, UserCreate
 from ..models.payment import Payment
+from ..utils.auth import get_current_user
 from ..utils.logger import logger
 
 router = APIRouter(prefix="/api/user", tags=["user"])
 
 @router.get("/current", response_model=User)
-async def get_current_user():
-    # In a real application, this would get the user from the JWT token
-    # For now, we'll return a mock user
-    user = await UserService.get_user("usr_123")
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
+async def get_current_user(current_user: User = Depends(get_current_user)):
+    """Get current user information"""
+    return current_user
 
 @router.get("/activity")
-async def get_account_activity():
-    # In a real application, this would get the user_id from the JWT token
-    activities = await UserService.get_account_activity("usr_123")
+async def get_account_activity(current_user: User = Depends(get_current_user)):
+    """Get user account activity"""
+    activities = await UserService.get_account_activity(current_user.id)
     return activities
 
 @router.post("/topup")
-async def top_up_account(amount: float, payment_method: str, payment_details: Dict[str, Any]):
+async def top_up_account(amount: float, payment_method: str, payment_details: Dict[str, Any], current_user: User = Depends(get_current_user)):
     try:
-        # In a real application, this would get the user_id from the JWT token
         payment = await UserService.create_payment(
-            "usr_123",
+            current_user.id,
             {
                 "amount": amount,
                 "method": payment_method,

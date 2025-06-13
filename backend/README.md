@@ -34,25 +34,32 @@ Once the server is running, you can access:
 
 ## Available Endpoints
 
+### Authentication Endpoints
+- `POST /api/auth/login` - Authenticate user and return access token
+- `POST /api/auth/signup` - Register new user and return access token
+- `POST /api/auth/logout` - Logout user (client-side token invalidation)
+
 ### User Endpoints
-- `GET /api/user/current` - Get current user information
-- `GET /api/user/activity` - Get user account activity
-- `POST /api/user/topup` - Add credits to user account
+- `GET /api/users/me` - Get current user information
+- `GET /api/users/stats` - Get user statistics and order counts
+- `GET /api/users/activity` - Get user account activity for a date range
+- `GET /api/users/validate-reddit-url` - Validate Reddit URL
 
 ### Order Endpoints
-- `GET /api/orders` - Get all orders
-- `GET /api/orders/history` - Get orders history
-- `POST /api/orders` - Create new one-time order
+- `GET /api/orders` - Get user's orders
+- `POST /api/orders` - Create new order
+- `GET /api/orders/payment-methods` - Get user's payment methods
 
 ### Payment Endpoints
-- `GET /api/payments` - Get payment history
+- `GET /api/payments` - Get user's payment history
+- `POST /api/payments` - Create new payment
+- `POST /api/payments/methods` - Add new payment method
 
-## Note
+## Features
 
-This is a mock implementation. In a production environment, you would need to:
-1. Implement proper authentication and authorization
-2. Connect to a real database
-3. Implement proper error handling
-4. Add input validation
-5. Add proper logging
-6. Implement the actual order processing logic 
+- **Full Authentication**: JWT-based authentication system
+- **Real Database Integration**: MongoDB integration for user, order, and payment data
+- **Rate Limiting**: Request rate limiting middleware
+- **Error Handling**: Comprehensive error handling and logging
+- **Input Validation**: Proper input validation for all endpoints
+- **Background Tasks**: Task management for order processing 

@@ -11,7 +11,7 @@ from ..utils.exceptions import (
     PaymentProcessingError,
     OrderProcessingError
 )
-from .user import get_current_user
+from ..utils.auth import get_current_user
 from ..utils.validators import validate_reddit_url, validate_payment_amount
 
 router = APIRouter()

@@ -1,15 +1,6 @@
 
-import { currentUser, accountActivity } from "@/mocks/userMock";
-import { orders } from "@/mocks/ordersMock";
-import { payments } from "@/mocks/paymentsMock";
-
 // Backend API base URL
 const API_BASE_URL = "http://localhost:8000";
-
-/**
- * Simulates API request delay for development
- */
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Get auth token from localStorage
@@ -133,9 +124,7 @@ export const api = {
         return await response.json();
       } catch (error) {
         console.error('Error fetching user:', error);
-        // Fallback to mock data for development
-        await delay(500);
-        return { ...currentUser };
+        throw error;
       }
     },
     
@@ -155,9 +144,7 @@ export const api = {
         return await response.json();
       } catch (error) {
         console.error('Error fetching activity:', error);
-        // Fallback to mock data for development
-        await delay(800);
-        return [...accountActivity];
+        throw error;
       }
     },
     
@@ -183,19 +170,7 @@ export const api = {
         return await response.json();
       } catch (error) {
         console.error('Error processing payment:', error);
-        // Fallback for development
-        await delay(1000);
-        return {
-          success: true,
-          transaction: {
-            id: `pay_${Math.floor(Math.random() * 1000)}`,
-            amount,
-            method: paymentMethod,
-            status: "completed",
-            createdAt: new Date().toISOString(),
-            description: "Account top-up"
-          }
-        };
+        throw error;
       }
     }
   },
@@ -218,9 +193,7 @@ export const api = {
         return await response.json();
       } catch (error) {
         console.error('Error fetching orders:', error);
-        // Fallback to mock data for development
-        await delay(700);
-        return [...orders];
+        throw error;
       }
     },
     
@@ -258,23 +231,7 @@ export const api = {
         return await response.json();
       } catch (error) {
         console.error('Error creating order:', error);
-        // Fallback for development
-        await delay(1200);
-        const newOrder = {
-          id: `ord_${Math.floor(Math.random() * 1000)}`,
-          type: "one-time",
-          status: "in-progress",
-          createdAt: new Date().toISOString(),
-          completedAt: null,
-          cost: orderData.upvotes * 0.8,
-          upvotesPerMinute: orderData.upvotesPerMinute || 1,
-          ...orderData
-        };
-        
-        return {
-          success: true,
-          order: newOrder
-        };
+        throw error;
       }
     }
   },
@@ -297,9 +254,7 @@ export const api = {
         return await response.json();
       } catch (error) {
         console.error('Error fetching payments:', error);
-        // Fallback to mock data for development
-        await delay(900);
-        return [...payments];
+        throw error;
       }
     }
   }
