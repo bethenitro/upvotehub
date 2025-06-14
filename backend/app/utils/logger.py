@@ -1,7 +1,6 @@
 import logging
 import sys
 import json
-from pythonjsonlogger import jsonlogger
 from ..config.settings import get_settings
 import structlog
 from pathlib import Path
@@ -26,15 +25,13 @@ def setup_logging():
     
     # Configure file handler
     file_handler = logging.FileHandler(settings.LOG_FILE)
-    file_handler.setFormatter(jsonlogger.JsonFormatter(
-        '%(asctime)s %(name)s %(levelname)s %(message)s'
-    ))
+    log_format = '%(asctime)s %(name)s %(levelname)s %(message)s'
+    file_handler.setFormatter(logging.Formatter(log_format))
     
     # Configure console handler
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(jsonlogger.JsonFormatter(
-        '%(asctime)s %(name)s %(levelname)s %(message)s'
-    ))
+    json_format = '%(asctime)s %(name)s %(levelname)s %(message)s'
+    console_handler.setFormatter(logging.Formatter(json_format))
     
     # Configure root logger
     root_logger = logging.getLogger()
