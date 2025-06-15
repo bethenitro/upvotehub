@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +10,8 @@ import { AuthProvider } from "@/context/AuthContext";
 // Components
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PublicRoute from "@/components/PublicRoute";
+import AdminRoute from "@/components/AdminRoute";
+import UserRoute from "@/components/UserRoute";
 
 // Layouts
 import Layout from "@/components/layout/Layout";
@@ -26,6 +27,7 @@ import OrdersHistory from "@/pages/OrdersHistory";
 import PaymentHistory from "@/pages/PaymentHistory";
 import TopUpAccount from "@/pages/TopUpAccount";
 import Help from "@/pages/Help";
+import AdminPage from "@/pages/AdminPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,22 +50,37 @@ const App = () => (
                 <Route path="signup" element={<Signup />} />
               </Route>
 
-              {/* Protected routes */}
+              {/* Protected routes for regular users */}
               <Route element={
-                <ProtectedRoute>
+                <UserRoute>
                   <AppProvider>
                     <Toaster />
                     <Sonner />
                     <Layout />
                   </AppProvider>
-                </ProtectedRoute>
-              }              >
+                </UserRoute>
+              }>
+                <Route path="/" element={<Dashboard />} />
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="order/new" element={<NewOrder />} />
                 <Route path="orders/history" element={<OrdersHistory />} />
                 <Route path="payments/history" element={<PaymentHistory />} />
                 <Route path="account/topup" element={<TopUpAccount />} />
                 <Route path="help" element={<Help />} />
+              </Route>
+
+              {/* Admin-only routes */}
+              <Route element={
+                <AdminRoute>
+                  <AppProvider>
+                    <Toaster />
+                    <Sonner />
+                    <Layout />
+                  </AppProvider>
+                </AdminRoute>
+              }>
+                <Route path="/" element={<AdminPage />} />
+                <Route path="admin" element={<AdminPage />} />
               </Route>
 
               {/* 404 page */}

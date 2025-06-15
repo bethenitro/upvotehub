@@ -26,4 +26,6 @@ class Collections:
     USERS = "users"
     ORDERS = "orders"
     PAYMENTS = "payments"
-    ACCOUNT_ACTIVITY = "account_activity" 
+    ACCOUNT_ACTIVITY = "account_activity"
+    PAYMENT_METHODS = "payment_methods"
+    BOT_CONFIGS = "bot_configs" 

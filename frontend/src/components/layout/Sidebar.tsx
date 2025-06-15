@@ -8,11 +8,15 @@ import {
   History, 
   CreditCard,
   Wallet,
-  HelpCircle
+  HelpCircle,
+  Settings
 } from 'lucide-react';
 
 const Sidebar = () => {
   const { user } = useApp();
+  
+  // Check if user is admin
+  const isAdmin = user?.email === import.meta.env.VITE_ADMIN_EMAIL || user?.email === 'admin@upvotezone.com';
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-full flex flex-col">
@@ -42,33 +46,46 @@ const Sidebar = () => {
       </div>
       
       <nav className="flex-1 p-4 space-y-1">
-        <NavLink to="/" end className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-          <Home size={18} />
-          <span>Dashboard</span>
-        </NavLink>
-        <NavLink to="/order/new" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-          <PlusCircle size={18} />
-          <span>New Order</span>
-        </NavLink>
-        <NavLink to="/orders/history" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-          <History size={18} />
-          <span>Orders History</span>
-        </NavLink>
-        <NavLink to="/payments/history" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-          <CreditCard size={18} />
-          <span>Payment History</span>
-        </NavLink>
-        <NavLink to="/account/topup" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-          <Wallet size={18} />
-          <span>Top Up Account</span>
-        </NavLink>
+        {isAdmin ? (
+          // Admin users only see the admin panel
+          <NavLink to="/admin" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <Settings size={18} />
+            <span>Admin Panel</span>
+          </NavLink>
+        ) : (
+          // Regular users see all the normal menu items
+          <>
+            <NavLink to="/" end className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              <Home size={18} />
+              <span>Dashboard</span>
+            </NavLink>
+            <NavLink to="/order/new" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              <PlusCircle size={18} />
+              <span>New Order</span>
+            </NavLink>
+            <NavLink to="/orders/history" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              <History size={18} />
+              <span>Orders History</span>
+            </NavLink>
+            <NavLink to="/payments/history" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              <CreditCard size={18} />
+              <span>Payment History</span>
+            </NavLink>
+            <NavLink to="/account/topup" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              <Wallet size={18} />
+              <span>Top Up Account</span>
+            </NavLink>
+          </>
+        )}
       </nav>
       
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        <NavLink to="/help" className="sidebar-link">
-          <HelpCircle size={18} />
-          <span>Help & Support</span>
-        </NavLink>
+        {!isAdmin && (
+          <NavLink to="/help" className="sidebar-link">
+            <HelpCircle size={18} />
+            <span>Help & Support</span>
+          </NavLink>
+        )}
       </div>
     </aside>
   );

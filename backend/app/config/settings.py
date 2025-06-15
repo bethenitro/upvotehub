@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     BTCPAY_STORE_ID: str = os.getenv("BTCPAY_STORE_ID", "")
     BTCPAY_WEBHOOK_SECRET: str = os.getenv("BTCPAY_WEBHOOK_SECRET", "")
     
+    # Admin Configuration
+    ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL", "admin@upvotezone.com")
+    
     # Frontend URL for redirects
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
     

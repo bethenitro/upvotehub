@@ -400,5 +400,119 @@ export const api = {
         throw error;
       }
     }
+  },
+
+  // Admin related endpoints
+  admin: {
+    /**
+     * Get admin statistics
+     */
+    getStats: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/stats`, {
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch admin stats');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching admin stats:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get user management data
+     */
+    getUsers: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch users data');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching users data:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Upload bot configuration file
+     */
+    uploadBotConfig: async (file: File) => {
+      try {
+        const formData = new FormData();
+        formData.append('config_file', file);
+
+        const response = await fetch(`${API_BASE_URL}/api/admin/bot-config/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${getAuthToken()}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Failed to upload bot config');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error uploading bot config:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get current bot configuration
+     */
+    getBotConfig: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/bot-config`, {
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch bot config');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching bot config:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Update bot configuration
+     */
+    updateBotConfig: async (configData: any) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/bot-config`, {
+          method: 'POST',
+          headers: createHeaders(),
+          body: JSON.stringify(configData),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Failed to update bot config');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error updating bot config:', error);
+        throw error;
+      }
+    }
   }
 };
