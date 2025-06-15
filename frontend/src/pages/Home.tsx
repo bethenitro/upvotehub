@@ -207,7 +207,7 @@ const Home: React.FC = () => {
                   
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
                     <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">100 upvotes</div>
-                    <div className="text-lg text-gray-600 dark:text-gray-300">for $1.00</div>
+                    <div className="text-lg text-gray-600 dark:text-gray-300">for $0.8</div>
                   </div>
                 </div>
                 
