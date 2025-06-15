@@ -12,7 +12,6 @@ const Signup: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const { signup } = useAuth();
@@ -40,10 +39,6 @@ const Signup: React.FC = () => {
       return;
     }
     
-    if (!agreeToTerms) {
-      alert('You must agree to the Terms of Service and Privacy Policy');
-      return;
-    }
     
     setIsSubmitting(true);
     

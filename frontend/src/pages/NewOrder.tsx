@@ -35,8 +35,8 @@ const NewOrder = () => {
     }
   }, [location.state]);
   
-  // Calculate cost based on upvotes (0.8 credits per upvote)
-  const cost = upvotes * 0.8;
+  // Calculate cost based on upvotes (0.008 credits per upvote)
+  const cost = upvotes * 0.008;
   
   // Check if user has enough credits
   const hasEnoughCredits = user && user.credits >= cost;

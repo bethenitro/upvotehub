@@ -17,8 +17,8 @@ class OrderService:
     async def create_order(user_id: str, order_data: OrderCreate) -> OrderInDB:
         db = Database.get_db()
         
-        # Calculate cost (0.8 credits per upvote)
-        cost = order_data.upvotes * 0.8
+        # Calculate cost (0.008 credits per upvote)
+        cost = order_data.upvotes * 0.008
         
         # Deduct credits from user
         user_result = await db[Collections.USERS].update_one(

@@ -37,7 +37,7 @@ async def create_order(
             raise InvalidRedditUrlError()
 
         # Calculate cost
-        cost = order.upvotes * 0.8
+        cost = order.upvotes * 0.008
 
         # Check credit balance
         if current_user.credits < cost:

@@ -186,107 +186,48 @@ const Home: React.FC = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <Card className="border-2 border-gray-200 dark:border-gray-700">
-              <CardHeader>
-                <CardTitle>Starter</CardTitle>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">$10</span>
-                  <span className="text-gray-500 dark:text-gray-400 ml-2">/ 100 credits</span>
-                </div>
+          <div className="max-w-2xl mx-auto text-center">
+            <Card className="border-2 border-upvote-primary shadow-lg">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-2xl">Simple Pricing</CardTitle>
+                <CardDescription className="text-lg">
+                  No packages, no tiers - just straightforward pricing
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  <li className="flex items-center">
-                    <CheckIcon className="mr-2 text-upvote-success" />
-                    <span>10 upvotes per post</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckIcon className="mr-2 text-upvote-success" />
-                    <span>Basic analytics</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckIcon className="mr-2 text-upvote-success" />
-                    <span>Email support</span>
-                  </li>
-                </ul>
-                <Link to="/signup">
-                <Button className="w-full mt-6">
-                  Get Started
-                </Button>
-                </Link>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-2 border-upvote-primary relative md:scale-105 shadow-lg">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-upvote-primary text-white px-3 py-1 rounded-full text-sm font-medium">
-                Most Popular
-              </div>
-              <CardHeader>
-                <CardTitle>Professional</CardTitle>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">$25</span>
-                  <span className="text-gray-500 dark:text-gray-400 ml-2">/ 300 credits</span>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="bg-upvote-primary/10 rounded-lg p-6">
+                    <div className="text-4xl font-bold text-upvote-primary mb-2">$0.008</div>
+                    <div className="text-lg text-gray-600 dark:text-gray-300">per upvote</div>
+                  </div>
+                  
+                  <div className="text-center text-gray-500 dark:text-gray-400">
+                    or
+                  </div>
+                  
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+                    <div className="text-4xl font-bold text-gray-900 dark:text-white mb-2">100 upvotes</div>
+                    <div className="text-lg text-gray-600 dark:text-gray-300">for $1.00</div>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  <li className="flex items-center">
-                    <CheckIcon className="mr-2 text-upvote-success" />
-                    <span>30 upvotes per post</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckIcon className="mr-2 text-upvote-success" />
-                    <span>Detailed analytics</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckIcon className="mr-2 text-upvote-success" />
-                    <span>Priority support</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckIcon className="mr-2 text-upvote-success" />
-                    <span>Auto-scheduling</span>
-                  </li>
-                </ul>
-                <Link to="/signup">
-                <Button className="w-full mt-6">
-                  Get Started
-                </Button>
-                </Link>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-2 border-gray-200 dark:border-gray-700">
-              <CardHeader>
-                <CardTitle>Enterprise</CardTitle>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">$50</span>
-                  <span className="text-gray-500 dark:text-gray-400 ml-2">/ 700 credits</span>
+                
+                <div className="pt-4">
+                  <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                    <li className="flex items-center justify-center">
+                      <CheckIcon className="mr-2 text-upvote-success" />
+                      <span>Pay only for what you need</span>
+                    </li>
+                    <li className="flex items-center justify-center">
+                      <CheckIcon className="mr-2 text-upvote-success" />
+                      <span>Credits never expire</span>
+                    </li>
+                  </ul>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  <li className="flex items-center">
-                    <CheckIcon className="mr-2 text-upvote-success" />
-                    <span>Unlimited upvotes</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckIcon className="mr-2 text-upvote-success" />
-                    <span>Advanced analytics</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckIcon className="mr-2 text-upvote-success" />
-                    <span>24/7 dedicated support</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckIcon className="mr-2 text-upvote-success" />
-                    <span>API access</span>
-                  </li>
-                </ul>
+                
                 <Link to="/signup">
-                <Button className="w-full mt-6">
-                  Get Started
-                </Button>
+                  <Button className="w-full mt-6" size="lg">
+                    Get Started Now
+                  </Button>
                 </Link>
               </CardContent>
             </Card>
