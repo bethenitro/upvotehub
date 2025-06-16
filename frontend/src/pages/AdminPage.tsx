@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -47,7 +48,10 @@ import {
   AlertTriangle,
   FileCode,
   Clock,
-  Activity
+  Activity,
+  Plus,
+  Trash2,
+  Server
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 
@@ -83,6 +87,18 @@ interface UserData {
   total_count: number;
 }
 
+interface ProxyConfig {
+  server: string;
+  username: string;
+  password: string;
+  rotation_url: string;
+}
+
+interface ProxyData {
+  proxies: ProxyConfig[];
+  total_count: number;
+}
+
 const AdminPage: React.FC = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -92,6 +108,17 @@ const AdminPage: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [botConfig, setBotConfig] = useState<any>(null);
   const [loadingConfig, setLoadingConfig] = useState(false);
+  
+  // Proxy management state
+  const [proxies, setProxies] = useState<ProxyData | null>(null);
+  const [loadingProxies, setLoadingProxies] = useState(false);
+  const [showAddProxyDialog, setShowAddProxyDialog] = useState(false);
+  const [newProxy, setNewProxy] = useState<ProxyConfig>({
+    server: '',
+    username: '',
+    password: '',
+    rotation_url: ''
+  });
 
   // Check if user is admin (this should match the backend admin email check)
   const isAdmin = user?.email === import.meta.env.VITE_ADMIN_EMAIL || user?.email === 'admin@upvotezone.com';
@@ -100,6 +127,7 @@ const AdminPage: React.FC = () => {
     if (isAdmin) {
       fetchAdminData();
       fetchBotConfig();
+      fetchProxies();
     }
   }, [isAdmin]);
 
@@ -133,6 +161,81 @@ const AdminPage: React.FC = () => {
       console.error('Failed to fetch bot config:', error);
     } finally {
       setLoadingConfig(false);
+    }
+  };
+
+  const fetchProxies = async () => {
+    try {
+      setLoadingProxies(true);
+      const proxyData = await api.admin.getProxies();
+      setProxies(proxyData);
+    } catch (error) {
+      console.error('Failed to fetch proxies:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load proxy configurations",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingProxies(false);
+    }
+  };
+
+  const handleAddProxy = async () => {
+    if (!newProxy.server || !newProxy.username || !newProxy.password || !newProxy.rotation_url) {
+      toast({
+        title: "Error",
+        description: "Please fill in all proxy fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await api.admin.addProxy(newProxy);
+      
+      toast({
+        title: "Success",
+        description: "Proxy added successfully",
+      });
+      
+      setNewProxy({
+        server: '',
+        username: '',
+        password: '',
+        rotation_url: ''
+      });
+      setShowAddProxyDialog(false);
+      await fetchProxies();
+      
+    } catch (error) {
+      console.error('Add proxy failed:', error);
+      toast({
+        title: "Add Failed",
+        description: error instanceof Error ? error.message : "Failed to add proxy",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteProxy = async (proxyIndex: number) => {
+    try {
+      await api.admin.deleteProxy(proxyIndex);
+      
+      toast({
+        title: "Success",
+        description: "Proxy deleted successfully",
+      });
+      
+      await fetchProxies();
+      
+    } catch (error) {
+      console.error('Delete proxy failed:', error);
+      toast({
+        title: "Delete Failed",
+        description: error instanceof Error ? error.message : "Failed to delete proxy",
+        variant: "destructive"
+      });
     }
   };
 
@@ -223,11 +326,12 @@ const AdminPage: React.FC = () => {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="activity">Recent Activity</TabsTrigger>
           <TabsTrigger value="bot-setup">Bot Setup</TabsTrigger>
+          <TabsTrigger value="proxies">Proxies</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -579,7 +683,152 @@ const AdminPage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="proxies" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Server className="h-5 w-5 mr-2" />
+                Proxy Configurations
+              </CardTitle>
+              <CardDescription>
+                Manage proxy settings for the application. Used for routing and API access.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Proxy List */}
+              <div className="space-y-4">
+                {loadingProxies ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-upvote-primary" />
+                  </div>
+                ) : proxies?.proxies.length ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Server</TableHead>
+                          <TableHead>Username</TableHead>
+                          <TableHead>Password</TableHead>
+                          <TableHead>Rotation URL</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {proxies.proxies.map((proxy, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{proxy.server}</TableCell>
+                            <TableCell>{proxy.username}</TableCell>
+                            <TableCell>{proxy.password}</TableCell>
+                            <TableCell>{proxy.rotation_url}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  onClick={() => handleDeleteProxy(index)} 
+                                  variant="destructive" 
+                                  size="icon"
+                                  aria-label="Delete proxy"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <p className="text-center text-gray-500 py-4">No proxy configurations found</p>
+                )}
+              </div>
+
+              {/* Add Proxy Button */}
+              <div className="flex justify-end">
+                <Button 
+                  onClick={() => setShowAddProxyDialog(true)} 
+                  className="flex items-center"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Proxy
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Add Proxy Dialog */}
+      <Dialog open={showAddProxyDialog} onOpenChange={setShowAddProxyDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Proxy</DialogTitle>
+            <DialogDescription>
+              Enter the details for the new proxy configuration.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="proxy-server">Server</Label>
+              <Input
+                id="proxy-server"
+                value={newProxy.server}
+                onChange={(e) => setNewProxy({ ...newProxy, server: e.target.value })}
+                placeholder="Proxy server address"
+              />
+            </div>
+            <div>
+              <Label htmlFor="proxy-username">Username</Label>
+              <Input
+                id="proxy-username"
+                value={newProxy.username}
+                onChange={(e) => setNewProxy({ ...newProxy, username: e.target.value })}
+                placeholder="Proxy username"
+              />
+            </div>
+            <div>
+              <Label htmlFor="proxy-password">Password</Label>
+              <Input
+                id="proxy-password"
+                type="password"
+                value={newProxy.password}
+                onChange={(e) => setNewProxy({ ...newProxy, password: e.target.value })}
+                placeholder="Proxy password"
+              />
+            </div>
+            <div>
+              <Label htmlFor="proxy-rotation-url">Rotation URL</Label>
+              <Input
+                id="proxy-rotation-url"
+                value={newProxy.rotation_url}
+                onChange={(e) => setNewProxy({ ...newProxy, rotation_url: e.target.value })}
+                placeholder="Proxy rotation URL"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button 
+              onClick={() => setShowAddProxyDialog(false)} 
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAddProxy}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                "Add Proxy"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

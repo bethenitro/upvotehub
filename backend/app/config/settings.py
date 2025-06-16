@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     BTCPAY_STORE_ID: str = os.getenv("BTCPAY_STORE_ID", "")
     BTCPAY_WEBHOOK_SECRET: str = os.getenv("BTCPAY_WEBHOOK_SECRET", "")
     
+    # Proxy Configuration
+    PROXY_CONFIG_FILE: str = os.getenv("PROXY_CONFIG_FILE", "/Users/nikanyad/Documents/UpVote/Upvote-RotatingProxies/mobile_proxies.json")
+    
     # Admin Configuration
     ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL", "admin@upvotezone.com")
     

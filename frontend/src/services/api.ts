@@ -1,4 +1,3 @@
-
 // Backend API base URL from environment variables
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -511,6 +510,104 @@ export const api = {
         return await response.json();
       } catch (error) {
         console.error('Error updating bot config:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get proxy configurations
+     */
+    getProxies: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/proxies`, {
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch proxy configurations');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching proxy configurations:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Add a new proxy configuration
+     */
+    addProxy: async (proxyData: {
+      server: string;
+      username: string;
+      password: string;
+      rotation_url: string;
+    }) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/proxies`, {
+          method: 'POST',
+          headers: createHeaders(),
+          body: JSON.stringify(proxyData),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Failed to add proxy');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error adding proxy:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Update all proxy configurations
+     */
+    updateProxies: async (proxies: Array<{
+      server: string;
+      username: string;
+      password: string;
+      rotation_url: string;
+    }>) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/proxies`, {
+          method: 'PUT',
+          headers: createHeaders(),
+          body: JSON.stringify({ proxies }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Failed to update proxies');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error updating proxies:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Delete a proxy configuration
+     */
+    deleteProxy: async (proxyIndex: number) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/proxies/${proxyIndex}`, {
+          method: 'DELETE',
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Failed to delete proxy');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error deleting proxy:', error);
         throw error;
       }
     }

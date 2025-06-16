@@ -2,16 +2,20 @@
 """
 UpVote Processing Script
 Handles upvote orders from the backend with proper JSON input/output interface
+Integrates with the actual bot in Upvote-RotatingProxies
 """
 
 import time
 import threading
 import json
 import sys
+import subprocess
+import os
 from datetime import datetime
 from typing import Dict, Any
 from dataclasses import dataclass, asdict
 from enum import Enum
+from pathlib import Path
 
 
 class UpvoteStatus(Enum):
@@ -41,6 +45,7 @@ class UpvoteSession:
 class UpvoteProcessor:
     """
     Enhanced upvote processor that handles orders from the backend
+    Integrates with the actual upvote bot
     """
     
     def __init__(self):
@@ -151,48 +156,74 @@ class UpvoteProcessor:
     
     def _upvote_worker(self, order_id: str):
         """
-        Worker thread that performs the actual upvoting simulation
+        Worker thread that performs the actual upvoting using the bot
         
         Args:
             order_id (str): The order ID to process
         """
         session = self.sessions[order_id]
         
-        # Calculate delay between upvotes (in seconds)
-        delay_between_upvotes = 60.0 / session.upvotes_per_minute
-        
         try:
-            while (session.upvotes_done < session.total_upvotes and 
-                   session.status == UpvoteStatus.RUNNING):
-                
-                # Simulate upvote processing
-                time.sleep(delay_between_upvotes)
-                
-                # Increment upvotes
-                session.upvotes_done += 1
-                session.progress_percentage = round(
-                    (session.upvotes_done / session.total_upvotes) * 100, 2
-                )
-                session.last_update = datetime.now().isoformat()
-                
-                # Simulate occasional network delays (10% chance)
-                if session.upvotes_done % 10 == 0:
-                    time.sleep(1)  # Brief delay every 10 upvotes
-                
-                # Simulate very rare failures (2% chance)
-                if session.upvotes_done % 50 == 0 and time.time() % 100 < 2:
-                    session.status = UpvoteStatus.FAILED
-                    session.error_message = "Simulated network failure"
-                    break
+            # Prepare JSON input for the bot
+            bot_input = {
+                "order_id": session.order_id,
+                "reddit_url": session.url,
+                "upvotes": session.total_upvotes,
+                "upvotes_per_minute": session.upvotes_per_minute
+            }
             
-            # Mark as completed if we reached the target
-            if session.upvotes_done >= session.total_upvotes:
-                session.status = UpvoteStatus.COMPLETED
-                session.progress_percentage = 100.0
+            # Path to the bot integration script
+            bot_script_path = "/Users/nikanyad/Documents/UpVote/Upvote-RotatingProxies/bot_integration.py"
+            
+            # Check if bot script exists
+            if not os.path.exists(bot_script_path):
+                session.status = UpvoteStatus.FAILED
+                session.error_message = f"Bot script not found at {bot_script_path}"
+                session.last_update = datetime.now().isoformat()
+                return
+            
+            # Start the bot process with real-time monitoring
+            process = subprocess.Popen(
+                ["python3", bot_script_path, "--json-mode"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                cwd="/Users/nikanyad/Documents/UpVote/Upvote-RotatingProxies"
+            )
+            
+            # Send JSON input to the bot and wait for it to start
+            stdout, stderr = process.communicate(input=json.dumps(bot_input))
+            
+            # Parse the bot's output
+            try:
+                bot_result = json.loads(stdout.strip()) if stdout.strip() else {}
+                
+                # Update session based on bot result
+                session.upvotes_done = bot_result.get("upvotes_done", 0)
+                session.progress_percentage = bot_result.get("progress_percentage", 0.0)
+                
+                if bot_result.get("success", False) and bot_result.get("status") == "completed":
+                    session.status = UpvoteStatus.COMPLETED
+                    session.progress_percentage = 100.0
+                elif bot_result.get("status") == "failed":
+                    session.status = UpvoteStatus.FAILED
+                    session.error_message = bot_result.get("error", "Bot execution failed")
+                else:
+                    session.status = UpvoteStatus.FAILED
+                    session.error_message = "Bot execution completed with unknown status"
+                    
+            except json.JSONDecodeError as e:
+                session.status = UpvoteStatus.FAILED
+                session.error_message = f"Failed to parse bot output: {str(e)}"
+                if stderr:
+                    session.error_message += f". Bot stderr: {stderr[:500]}"  # Limit error message length
+                if stdout:
+                    session.error_message += f". Bot stdout: {stdout[:500]}"
                 
         except Exception as e:
             session.status = UpvoteStatus.FAILED
-            session.error_message = f"Processing error: {str(e)}"
+            session.error_message = f"Bot execution error: {str(e)}"
         
         session.last_update = datetime.now().isoformat()
         

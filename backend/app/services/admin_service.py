@@ -323,3 +323,243 @@ class AdminService:
         except Exception as e:
             logger.error("get_bot_config_failed", error=str(e))
             raise
+
+    @staticmethod
+    async def get_proxies() -> Dict[str, Any]:
+        """Get current proxy configurations from file"""
+        try:
+            from ..config.settings import get_settings
+            import os
+            import json
+            
+            settings = get_settings()
+            proxy_file_path = settings.PROXY_CONFIG_FILE
+            
+            logger.info("get_proxies_started", proxy_file_path=proxy_file_path)
+            
+            if not os.path.exists(proxy_file_path):
+                logger.info("proxy_file_not_found", proxy_file_path=proxy_file_path)
+                # Create directory if it doesn't exist
+                os.makedirs(os.path.dirname(proxy_file_path), exist_ok=True)
+                logger.info("proxy_directory_created", directory=os.path.dirname(proxy_file_path))
+                # Create empty proxy file
+                with open(proxy_file_path, 'w') as f:
+                    json.dump([], f)
+                logger.info("empty_proxy_file_created", proxy_file_path=proxy_file_path)
+                return {"proxies": [], "total_count": 0}
+            
+            with open(proxy_file_path, 'r') as f:
+                proxies = json.load(f)
+            
+            # Ensure proxies is a list
+            if not isinstance(proxies, list):
+                logger.warning("proxy_file_invalid_format", 
+                    proxy_file_path=proxy_file_path, 
+                    type_found=type(proxies).__name__)
+                proxies = []
+            
+            logger.info("proxies_loaded_successfully", 
+                proxy_count=len(proxies), 
+                proxy_file_path=proxy_file_path)
+            
+            return {
+                "proxies": proxies,
+                "total_count": len(proxies)
+            }
+            
+        except Exception as e:
+            logger.error("get_proxies_failed", error=str(e), proxy_file_path=proxy_file_path)
+            raise
+
+    @staticmethod
+    async def add_proxy(proxy_data: Dict[str, Any]) -> bool:
+        """Add a new proxy configuration"""
+        try:
+            from ..config.settings import get_settings
+            import os
+            import json
+            
+            settings = get_settings()
+            proxy_file_path = settings.PROXY_CONFIG_FILE
+            
+            logger.info("add_proxy_started", 
+                proxy_server=proxy_data.get("server"),
+                proxy_username=proxy_data.get("username"),
+                proxy_file_path=proxy_file_path)
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(proxy_file_path), exist_ok=True)
+            logger.debug("proxy_directory_ensured", directory=os.path.dirname(proxy_file_path))
+            
+            # Load existing proxies
+            if os.path.exists(proxy_file_path):
+                logger.debug("loading_existing_proxies", proxy_file_path=proxy_file_path)
+                with open(proxy_file_path, 'r') as f:
+                    proxies = json.load(f)
+                logger.debug("existing_proxies_loaded", existing_count=len(proxies) if isinstance(proxies, list) else 0)
+            else:
+                logger.debug("no_existing_proxy_file", proxy_file_path=proxy_file_path)
+                proxies = []
+            
+            # Ensure proxies is a list
+            if not isinstance(proxies, list):
+                logger.warning("proxy_file_invalid_format_on_add", 
+                    type_found=type(proxies).__name__)
+                proxies = []
+            
+            # Add new proxy
+            proxies.append(proxy_data)
+            logger.info("proxy_appended_to_list", 
+                new_total_count=len(proxies),
+                added_proxy_server=proxy_data.get("server"))
+            
+            # Save back to file
+            with open(proxy_file_path, 'w') as f:
+                json.dump(proxies, f, indent=2)
+            
+            logger.info("proxy_file_saved_successfully", 
+                proxy_file_path=proxy_file_path,
+                total_proxies=len(proxies),
+                file_size_bytes=os.path.getsize(proxy_file_path))
+            
+            logger.info("proxy_added_successfully", 
+                proxy_server=proxy_data.get("server"),
+                proxy_username=proxy_data.get("username"),
+                total_proxies_after_add=len(proxies))
+            return True
+            
+        except Exception as e:
+            logger.error("add_proxy_failed", 
+                error=str(e),
+                proxy_server=proxy_data.get("server", "unknown"),
+                proxy_file_path=proxy_file_path)
+            raise
+
+    @staticmethod
+    async def update_proxies(proxies_data: List[Dict[str, Any]]) -> bool:
+        """Update all proxy configurations"""
+        try:
+            from ..config.settings import get_settings
+            import os
+            import json
+            
+            settings = get_settings()
+            proxy_file_path = settings.PROXY_CONFIG_FILE
+            
+            logger.info("update_proxies_started", 
+                new_proxy_count=len(proxies_data),
+                proxy_file_path=proxy_file_path)
+            
+            # Log details about the proxies being saved
+            proxy_servers = [proxy.get("server", "unknown") for proxy in proxies_data]
+            logger.info("proxies_to_save", 
+                proxy_servers=proxy_servers,
+                total_count=len(proxies_data))
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(proxy_file_path), exist_ok=True)
+            logger.debug("proxy_directory_ensured", directory=os.path.dirname(proxy_file_path))
+            
+            # Save the entire proxy list
+            with open(proxy_file_path, 'w') as f:
+                json.dump(proxies_data, f, indent=2)
+            
+            # Verify the file was written correctly
+            file_size = os.path.getsize(proxy_file_path)
+            logger.info("proxy_file_written", 
+                proxy_file_path=proxy_file_path,
+                file_size_bytes=file_size,
+                proxies_saved=len(proxies_data))
+            
+            # Read back and verify
+            with open(proxy_file_path, 'r') as f:
+                saved_proxies = json.load(f)
+            
+            logger.info("proxies_updated_successfully", 
+                proxy_count=len(proxies_data),
+                verified_count=len(saved_proxies),
+                proxy_file_path=proxy_file_path)
+            return True
+            
+        except Exception as e:
+            logger.error("update_proxies_failed", 
+                error=str(e),
+                proxy_count=len(proxies_data),
+                proxy_file_path=proxy_file_path)
+            raise
+
+    @staticmethod
+    async def delete_proxy(proxy_index: int) -> bool:
+        """Delete a proxy configuration by index"""
+        try:
+            from ..config.settings import get_settings
+            import os
+            import json
+            
+            settings = get_settings()
+            proxy_file_path = settings.PROXY_CONFIG_FILE
+            
+            logger.info("delete_proxy_started", 
+                proxy_index=proxy_index,
+                proxy_file_path=proxy_file_path)
+            
+            if not os.path.exists(proxy_file_path):
+                logger.warning("proxy_file_not_found_for_delete", 
+                    proxy_file_path=proxy_file_path)
+                return False
+            
+            # Load existing proxies
+            with open(proxy_file_path, 'r') as f:
+                proxies = json.load(f)
+            
+            logger.debug("proxies_loaded_for_delete", 
+                total_proxies=len(proxies) if isinstance(proxies, list) else 0)
+            
+            # Ensure proxies is a list
+            if not isinstance(proxies, list):
+                logger.error("proxy_file_invalid_format_for_delete", 
+                    type_found=type(proxies).__name__)
+                return False
+            
+            # Check if index is valid
+            if proxy_index < 0 or proxy_index >= len(proxies):
+                logger.warning("invalid_proxy_index", 
+                    proxy_index=proxy_index,
+                    total_proxies=len(proxies),
+                    valid_range=f"0-{len(proxies)-1}" if proxies else "none")
+                return False
+            
+            # Get proxy info before removal for logging
+            proxy_to_remove = proxies[proxy_index]
+            logger.info("proxy_to_delete_identified", 
+                proxy_index=proxy_index,
+                proxy_server=proxy_to_remove.get("server", "unknown"),
+                proxy_username=proxy_to_remove.get("username", "unknown"))
+            
+            # Remove proxy at index
+            removed_proxy = proxies.pop(proxy_index)
+            
+            # Save back to file
+            with open(proxy_file_path, 'w') as f:
+                json.dump(proxies, f, indent=2)
+            
+            # Verify file was saved
+            file_size = os.path.getsize(proxy_file_path)
+            logger.info("proxy_file_updated_after_delete", 
+                proxy_file_path=proxy_file_path,
+                file_size_bytes=file_size,
+                remaining_proxies=len(proxies))
+            
+            logger.info("proxy_deleted_successfully", 
+                proxy_index=proxy_index, 
+                proxy_server=removed_proxy.get("server"),
+                proxy_username=removed_proxy.get("username"),
+                remaining_proxies=len(proxies))
+            return True
+            
+        except Exception as e:
+            logger.error("delete_proxy_failed", 
+                error=str(e),
+                proxy_index=proxy_index,
+                proxy_file_path=proxy_file_path)
+            raise
