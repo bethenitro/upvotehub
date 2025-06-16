@@ -12,10 +12,15 @@ class UserService:
     async def create_user(user_data: UserCreate) -> UserInDB:
         db = Database.get_db()
         
-        # Check if user already exists
+        # Check if user already exists by email
         existing_user = await db[Collections.USERS].find_one({"email": user_data.email})
         if existing_user:
             raise ValueError("User with this email already exists")
+        
+        # Check if username already exists
+        existing_username = await db[Collections.USERS].find_one({"username": user_data.username})
+        if existing_username:
+            raise ValueError("Username is already taken")
         
         # Create user document
         user = UserInDB(
@@ -50,6 +55,16 @@ class UserService:
     async def get_user_by_email(email: str) -> Optional[UserInDB]:
         db = Database.get_db()
         user_data = await db[Collections.USERS].find_one({"email": email})
+        if user_data:
+            user_data["id"] = str(user_data["_id"])
+            return UserInDB(**user_data)
+        return None
+
+    @staticmethod
+    async def get_user_by_username(username: str) -> Optional[UserInDB]:
+        """Get user by username"""
+        db = Database.get_db()
+        user_data = await db[Collections.USERS].find_one({"username": username})
         if user_data:
             user_data["id"] = str(user_data["_id"])
             return UserInDB(**user_data)

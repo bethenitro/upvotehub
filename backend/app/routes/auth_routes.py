@@ -75,12 +75,20 @@ async def login(login_data: LoginRequest):
 async def signup(signup_data: SignupRequest):
     """Register a new user and return access token"""
     try:
-        # Check if user already exists
+        # Check if user already exists by email
         existing_user = await UserService.get_user_by_email(signup_data.email)
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User with this email already exists"
+            )
+
+        # Check if username already exists
+        existing_username = await UserService.get_user_by_username(signup_data.username)
+        if existing_username:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username is already taken"
             )
 
         # Hash password

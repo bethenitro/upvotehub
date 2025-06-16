@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -14,22 +13,29 @@ const Signup: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const { signup } = useAuth();
   const navigate = useNavigate();
 
   const validateForm = () => {
+    let isValid = true;
+
     if (password !== confirmPassword) {
       setPasswordError('Passwords do not match');
-      return false;
-    }
-    
-    if (password.length < 8) {
+      isValid = false;
+    } else if (password.length < 8) {
       setPasswordError('Password must be at least 8 characters long');
-      return false;
+      isValid = false;
+    } else {
+      setPasswordError(null);
     }
     
-    setPasswordError(null);
-    return true;
+    // Reset other errors (they will be shown by backend if needed)
+    setEmailError(null);
+    setUsernameError(null);
+
+    return isValid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,6 +84,9 @@ const Signup: React.FC = () => {
                   onChange={(e) => setUsername(e.target.value)}
                   required
                 />
+                {usernameError && (
+                  <p className="text-sm text-red-500 mt-1">{usernameError}</p>
+                )}
               </div>
               
               <div className="space-y-2">
@@ -90,6 +99,9 @@ const Signup: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
+                {emailError && (
+                  <p className="text-sm text-red-500 mt-1">{emailError}</p>
+                )}
               </div>
               
               <div className="space-y-2">
