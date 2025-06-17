@@ -69,7 +69,6 @@ interface Order {
   completed_at?: string;
   started_at?: string;
   cancelled_at?: string;
-  paused_at?: string;
   cost: number;
   upvotes_processed?: number;
   progress_percentage?: number;
@@ -182,7 +181,8 @@ const OrdersHistory = () => {
         return <Badge className="bg-green-500"><CheckCircle className="w-3 h-3 mr-1" /> Completed</Badge>;
       case 'active':
       case 'processing':
-        return <Badge className="bg-blue-500"><Clock className="w-3 h-3 mr-1" /> Active</Badge>;
+      case 'in-progress':
+        return <Badge className="bg-blue-500"><Clock className="w-3 h-3 mr-1" /> Processing</Badge>;
       case 'pending':
         return <Badge className="bg-yellow-500"><Clock className="w-3 h-3 mr-1" /> Pending</Badge>;
       case 'failed':
@@ -208,20 +208,42 @@ const OrdersHistory = () => {
     
     switch (order.status?.toLowerCase()) {
       case 'pending':
-        return <span className="text-muted-foreground italic">Not started</span>;
+        return <span className="text-muted-foreground italic">Waiting to start</span>;
       case 'in-progress':
       case 'processing':
         const progress = order.progress_percentage || 0;
         const processed = order.upvotes_processed || 0;
         const total = order.upvotes || 0;
-        return (
-          <div className="flex flex-col">
-            <span className="text-blue-600 italic">In progress</span>
-            <span className="text-xs text-muted-foreground">
-              {processed}/{total} ({progress.toFixed(1)}%)
-            </span>
-          </div>
-        );
+        
+        // Show different progress displays based on available data
+        if (processed > 0 && total > 0) {
+          return (
+            <div className="flex flex-col">
+              <span className="text-blue-600 italic">Processing upvotes</span>
+              <span className="text-xs text-muted-foreground">
+                {processed}/{total} ({progress.toFixed(1)}%)
+              </span>
+            </div>
+          );
+        } else if (progress > 0) {
+          return (
+            <div className="flex flex-col">
+              <span className="text-blue-600 italic">Processing upvotes</span>
+              <span className="text-xs text-muted-foreground">
+                ~{progress.toFixed(1)}% complete
+              </span>
+            </div>
+          );
+        } else {
+          return (
+            <div className="flex flex-col">
+              <span className="text-blue-600 italic">Bot is running</span>
+              <span className="text-xs text-muted-foreground">
+                Processing {total} upvotes
+              </span>
+            </div>
+          );
+        }
       case 'failed':
         return <span className="text-red-500 italic">Failed</span>;
       case 'cancelled':
@@ -314,7 +336,25 @@ const OrdersHistory = () => {
                         </p>
                       </div>
                     ) : (
-                      <p className="text-muted-foreground">Not started</p>
+                      <div className="space-y-1">
+                        {order.status?.toLowerCase() === 'in-progress' || order.status?.toLowerCase() === 'processing' ? (
+                          <div>
+                            <p className="font-medium text-blue-600">Bot is currently processing</p>
+                            <p className="text-xs text-muted-foreground">
+                              Individual upvote tracking not available during processing
+                            </p>
+                          </div>
+                        ) : order.status?.toLowerCase() === 'completed' ? (
+                          <div>
+                            <p className="font-medium text-green-600">All {order.upvotes.toLocaleString()} upvotes completed</p>
+                            <div className="w-full bg-muted rounded-full h-2">
+                              <div className="bg-green-600 h-2 rounded-full w-full" />
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground">Not started</p>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -407,16 +447,6 @@ const OrdersHistory = () => {
                     <div>
                       <p className="text-sm font-medium">Cancelled</p>
                       <p className="text-xs text-muted-foreground">{formatDate(order.cancelled_at)}</p>
-                    </div>
-                  </div>
-                )}
-
-                {order.paused_at && (
-                  <div className="flex items-center gap-3 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded">
-                    <Clock className="h-4 w-4 text-yellow-600" />
-                    <div>
-                      <p className="text-sm font-medium">Paused</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(order.paused_at)}</p>
                     </div>
                   </div>
                 )}

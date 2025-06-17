@@ -42,7 +42,6 @@ class OrderService:
             "started_at": None,
             "completed_at": None,
             "cancelled_at": None,
-            "paused_at": None,
             "last_update": datetime.utcnow(),
             "upvotes_processed": 0,
             "progress_percentage": 0.0,
@@ -117,15 +116,37 @@ class OrderService:
                     result = json.loads(stdout.decode())
                     
                     # Update order status based on script result
+                    # The bot integration provides limited progress tracking, so we estimate based on status
+                    status_mapping = {
+                        "completed": "completed",
+                        "running": "in-progress", 
+                        "failed": "failed",
+                        "pending": "in-progress"
+                    }
+                    
+                    bot_status = result.get("status", "failed")
+                    db_status = status_mapping.get(bot_status, "failed")
+                    
                     update_data = {
-                        "status": "completed" if result.get("status") == "completed" else "in-progress",
-                        "upvotes_processed": result.get("upvotes_done", 0),
-                        "progress_percentage": result.get("progress_percentage", 0),
+                        "status": db_status,
                         "last_update": datetime.utcnow()
                     }
                     
-                    if result.get("status") == "completed":
+                    # Handle upvotes progress - bot doesn't provide real-time counts
+                    if bot_status == "completed":
+                        update_data["upvotes_processed"] = order_data["upvotes"]
+                        update_data["progress_percentage"] = 100.0
                         update_data["completed_at"] = datetime.utcnow()
+                    elif bot_status == "running":
+                        # Estimate progress based on time if not provided
+                        estimated_progress = result.get("progress_percentage", 50.0)
+                        estimated_upvotes = int((estimated_progress / 100.0) * order_data["upvotes"])
+                        update_data["upvotes_processed"] = estimated_upvotes
+                        update_data["progress_percentage"] = estimated_progress
+                    else:
+                        # For pending or failed, use current values or defaults
+                        update_data["upvotes_processed"] = result.get("upvotes_done", 0)
+                        update_data["progress_percentage"] = result.get("progress_percentage", 0)
                     
                     if result.get("error"):
                         update_data["error_message"] = result["error"]
@@ -139,7 +160,7 @@ class OrderService:
                     logger.info("order_processing_result", 
                         order_id=order_data["id"],
                         status=result.get("status"),
-                        upvotes_done=result.get("upvotes_done", 0),
+                        upvotes_done=update_data.get("upvotes_processed", 0),
                         error=result.get("error")
                     )
                     
@@ -249,7 +270,6 @@ class OrderService:
                     "started_at": order_doc.get("started_at"),
                     "completed_at": order_doc.get("completed_at"),
                     "cancelled_at": order_doc.get("cancelled_at"),
-                    "paused_at": order_doc.get("paused_at"),
                     "last_update": order_doc.get("last_update"),
                     "upvotes_processed": order_doc.get("upvotes_processed", 0),
                     "progress_percentage": order_doc.get("progress_percentage", 0.0),

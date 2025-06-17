@@ -85,12 +85,12 @@ async def get_order_status(
         status = await OrderService.get_order_status(order_id)
         if not status:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=404,
                 detail="Order not found"
             )
         return status
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=str(e)
         )

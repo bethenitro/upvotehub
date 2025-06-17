@@ -22,7 +22,6 @@ class OrderInDB(OrderBase):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     cancelled_at: Optional[datetime] = None
-    paused_at: Optional[datetime] = None
     last_update: Optional[datetime] = None
     upvotes_processed: int = 0
     progress_percentage: float = 0.0
@@ -39,7 +38,6 @@ class Order(OrderBase):
     started_at: Optional[datetime]
     completed_at: Optional[datetime]
     cancelled_at: Optional[datetime]
-    paused_at: Optional[datetime]
     last_update: Optional[datetime]
     upvotes_processed: int
     progress_percentage: float

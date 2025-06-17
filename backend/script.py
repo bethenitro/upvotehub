@@ -23,7 +23,6 @@ class UpvoteStatus(Enum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
-    PAUSED = "paused"
     FAILED = "failed"
 
 
@@ -182,7 +181,7 @@ class UpvoteProcessor:
                 session.last_update = datetime.now().isoformat()
                 return
             
-            # Start the bot process with real-time monitoring
+            # Start the bot process
             process = subprocess.Popen(
                 ["python3", bot_script_path, "--json-mode"],
                 stdin=subprocess.PIPE,
@@ -192,23 +191,24 @@ class UpvoteProcessor:
                 cwd="/Users/nikanyad/Documents/UpVote/Upvote-RotatingProxies"
             )
             
-            # Send JSON input to the bot and wait for it to start
+            # Send JSON input to the bot and wait for completion
             stdout, stderr = process.communicate(input=json.dumps(bot_input))
             
             # Parse the bot's output
             try:
                 bot_result = json.loads(stdout.strip()) if stdout.strip() else {}
                 
-                # Update session based on bot result
-                session.upvotes_done = bot_result.get("upvotes_done", 0)
-                session.progress_percentage = bot_result.get("progress_percentage", 0.0)
-                
+                # Update session based on bot result - no estimation, just use what bot returns
                 if bot_result.get("success", False) and bot_result.get("status") == "completed":
                     session.status = UpvoteStatus.COMPLETED
                     session.progress_percentage = 100.0
+                    session.upvotes_done = session.total_upvotes  # Only set when completed
                 elif bot_result.get("status") == "failed":
                     session.status = UpvoteStatus.FAILED
                     session.error_message = bot_result.get("error", "Bot execution failed")
+                elif bot_result.get("status") == "running":
+                    # Bot is still running, keep status as running without estimates
+                    session.status = UpvoteStatus.RUNNING
                 else:
                     session.status = UpvoteStatus.FAILED
                     session.error_message = "Bot execution completed with unknown status"
@@ -266,58 +266,6 @@ class UpvoteProcessor:
             "error": session.error_message
         }
     
-    def pause_session(self, order_id: str) -> bool:
-        """
-        Pause an active upvote session
-        
-        Args:
-            order_id (str): The order ID to pause
-            
-        Returns:
-            bool: True if successfully paused, False otherwise
-        """
-        if order_id not in self.sessions:
-            return False
-        
-        session = self.sessions[order_id]
-        if session.status == UpvoteStatus.RUNNING:
-            session.status = UpvoteStatus.PAUSED
-            return True
-        
-        return False
-    
-    def resume_session(self, order_id: str) -> bool:
-        """
-        Resume a paused upvote session
-        
-        Args:
-            order_id (str): The order ID to resume
-            
-        Returns:
-            bool: True if successfully resumed, False otherwise
-        """
-        if order_id not in self.sessions:
-            return False
-        
-        session = self.sessions[order_id]
-        if session.status == UpvoteStatus.PAUSED:
-            session.status = UpvoteStatus.RUNNING
-            # Restart the worker thread
-            thread = threading.Thread(target=self._upvote_worker, args=(order_id,))
-            thread.daemon = True
-            self.active_threads[order_id] = thread
-            thread.start()
-            return True
-        
-        return False
-    
-    def get_all_sessions(self) -> Dict[str, Dict[str, Any]]:
-        """
-        Get status of all sessions
-        
-        Returns:
-            dict: Dictionary of all session statuses
-        """
         return {
             order_id: self.get_session_status(order_id)
             for order_id in self.sessions
