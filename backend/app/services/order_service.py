@@ -1,6 +1,7 @@
 import subprocess
 import json
 import asyncio
+import os
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 from bson import ObjectId
@@ -96,13 +97,24 @@ class OrderService:
                 {"$set": {"status": "in-progress", "started_at": datetime.utcnow()}}
             )
             
-            # Run the script in a subprocess
+            # Run the script in a subprocess using the configured Python executable
+            python_executable = settings.PYTHON_EXECUTABLE
+            
+            # Fallback to sys.executable if the configured python doesn't exist
+            if not os.path.exists(python_executable):
+                import sys
+                python_executable = sys.executable
+                logger.warning("configured_python_not_found", 
+                    configured_path=settings.PYTHON_EXECUTABLE,
+                    fallback_path=python_executable
+                )
+            
             process = await asyncio.create_subprocess_exec(
-                "python", "script.py",
+                python_executable, settings.ORDER_SCRIPT_PATH,
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                cwd="/Users/nikanyad/Documents/UpVote/upvote-integration/upvotehub/backend"
+                cwd=settings.BACKEND_WORKING_DIRECTORY
             )
             
             # Send input to script

@@ -16,6 +16,10 @@ from typing import Dict, Any
 from dataclasses import dataclass, asdict
 from enum import Enum
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 
 class UpvoteStatus(Enum):
@@ -171,8 +175,14 @@ class UpvoteProcessor:
                 "upvotes_per_minute": session.upvotes_per_minute
             }
             
-            # Path to the bot integration script
-            bot_script_path = "/Users/nikanyad/Documents/UpVote/Upvote-RotatingProxies/bot_integration.py"
+            # Path to the bot integration script (from environment variable)
+            bot_script_path = os.getenv("BOT_SCRIPT_PATH", "/Users/nikanyad/Documents/UpVote/Upvote-RotatingProxies/bot_integration.py")
+            
+            # Path to the Python executable in the bot's virtual environment (from environment variable)
+            bot_python_path = os.getenv("BOT_PYTHON_EXECUTABLE", "/Users/nikanyad/Documents/UpVote/Upvote-RotatingProxies/env/bin/python")
+            
+            # Bot working directory (from environment variable)
+            bot_working_dir = os.getenv("BOT_WORKING_DIRECTORY", "/Users/nikanyad/Documents/UpVote/Upvote-RotatingProxies")
             
             # Check if bot script exists
             if not os.path.exists(bot_script_path):
@@ -181,14 +191,21 @@ class UpvoteProcessor:
                 session.last_update = datetime.now().isoformat()
                 return
             
+            # Check if bot Python executable exists
+            if not os.path.exists(bot_python_path):
+                session.status = UpvoteStatus.FAILED
+                session.error_message = f"Bot Python executable not found at {bot_python_path}"
+                session.last_update = datetime.now().isoformat()
+                return
+            
             # Start the bot process
             process = subprocess.Popen(
-                ["python3", bot_script_path, "--json-mode"],
+                [bot_python_path, bot_script_path, "--json-mode"],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                cwd="/Users/nikanyad/Documents/UpVote/Upvote-RotatingProxies"
+                cwd=bot_working_dir
             )
             
             # Send JSON input to the bot and wait for completion

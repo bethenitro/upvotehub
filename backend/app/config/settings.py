@@ -43,6 +43,13 @@ class Settings(BaseSettings):
     # Order Processing
     ORDER_SCRIPT_PATH: str = "script.py"
     
+    # Python and Bot Configuration
+    PYTHON_EXECUTABLE: str = os.getenv("PYTHON_EXECUTABLE", "/Users/nikanyad/Documents/UpVote/env/bin/python")
+    BOT_PYTHON_EXECUTABLE: str = os.getenv("BOT_PYTHON_EXECUTABLE", "/Users/nikanyad/Documents/UpVote/Upvote-RotatingProxies/env/bin/python")
+    BOT_SCRIPT_PATH: str = os.getenv("BOT_SCRIPT_PATH", "/Users/nikanyad/Documents/UpVote/Upvote-RotatingProxies/bot_integration.py")
+    BOT_WORKING_DIRECTORY: str = os.getenv("BOT_WORKING_DIRECTORY", "/Users/nikanyad/Documents/UpVote/Upvote-RotatingProxies")
+    BACKEND_WORKING_DIRECTORY: str = os.getenv("BACKEND_WORKING_DIRECTORY", "/Users/nikanyad/Documents/UpVote/upvote-integration/upvotehub/backend")
+    
     # Cryptomus Personal API Configuration (Replaces BTCPay)
     CRYPTOMUS_API_KEY: str = os.getenv("CRYPTOMUS_API_KEY", "")
     CRYPTOMUS_USER_ID: str = os.getenv("CRYPTOMUS_USER_ID", "")
