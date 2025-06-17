@@ -23,6 +23,16 @@ class SystemSettingsRequest(BaseModel):
     min_upvotes_per_minute: int
     max_upvotes_per_minute: int
 
+class AccountInfo(BaseModel):
+    account_id: int
+    reddit_username: str
+
+class ProfilesFolderResponse(BaseModel):
+    success: bool
+    message: str
+    accounts: List[AccountInfo] = []
+    total_accounts: int = 0
+
 router = APIRouter()
 
 @router.get("/stats")
@@ -365,4 +375,106 @@ async def delete_proxy(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete proxy"
+        )
+
+@router.post("/profiles-folder/upload")
+async def upload_profiles_folder(
+    folder_file: UploadFile = File(...),
+    admin_user: UserInDB = Depends(get_admin_user)
+):
+    """Upload profiles folder (zip file) and extract to BOT_WORKING_DIRECTORY"""
+    try:
+        # Validate file type
+        if not folder_file.filename.endswith('.zip'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only ZIP files are supported for folder upload"
+            )
+        
+        logger.info("profiles_folder_upload_started", 
+            filename=folder_file.filename,
+            admin_email=admin_user.email)
+        
+        # Upload and extract the profiles folder
+        result = await AdminService.upload_profiles_folder(folder_file)
+        
+        if result["success"]:
+            logger.info("profiles_folder_uploaded_successfully", 
+                filename=folder_file.filename,
+                admin_email=admin_user.email,
+                total_accounts=result.get("total_accounts", 0))
+            return result
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.get("error", "Failed to upload profiles folder")
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("profiles_folder_upload_failed", 
+            error=str(e), 
+            filename=folder_file.filename,
+            admin_email=admin_user.email)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to process profiles folder"
+        )
+
+@router.get("/bot-accounts")
+async def get_bot_accounts(admin_user: UserInDB = Depends(get_admin_user)):
+    """Get list of bot accounts from the profiles folder"""
+    try:
+        logger.info("get_bot_accounts_called", admin_email=admin_user.email)
+        
+        accounts = await AdminService.get_bot_accounts()
+        
+        logger.info("get_bot_accounts_success", 
+            admin_email=admin_user.email,
+            total_accounts=len(accounts.get("accounts", [])))
+        
+        return accounts
+        
+    except Exception as e:
+        logger.error("get_bot_accounts_failed", error=str(e), admin_email=admin_user.email)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve bot accounts"
+        )
+
+@router.delete("/bot-accounts/{account_id}")
+async def delete_bot_account(
+    account_id: int,
+    admin_user: UserInDB = Depends(get_admin_user)
+):
+    """Delete a bot account (remove from JSON and delete folder)"""
+    try:
+        logger.info("delete_bot_account_called", 
+            account_id=account_id,
+            admin_email=admin_user.email)
+        
+        result = await AdminService.delete_bot_account(account_id)
+        
+        if result["success"]:
+            logger.info("delete_bot_account_success", 
+                account_id=account_id,
+                admin_email=admin_user.email)
+            return result
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.get("error", "Account not found or failed to delete")
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("delete_bot_account_failed", 
+            error=str(e), 
+            account_id=account_id,
+            admin_email=admin_user.email)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete bot account"
         )

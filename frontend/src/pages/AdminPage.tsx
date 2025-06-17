@@ -111,14 +111,11 @@ const AdminPage: React.FC = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [botConfig, setBotConfig] = useState<any>(null);
-  const [loadingConfig, setLoadingConfig] = useState(false);
   
   // Proxy management state
   const [proxies, setProxies] = useState<ProxyData | null>(null);
   const [loadingProxies, setLoadingProxies] = useState(false);
+  const [addingProxy, setAddingProxy] = useState(false);
   const [showAddProxyDialog, setShowAddProxyDialog] = useState(false);
   const [newProxy, setNewProxy] = useState<ProxyConfig>({
     server: '',
@@ -137,15 +134,22 @@ const AdminPage: React.FC = () => {
   const [loadingSettings, setLoadingSettings] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
+  // Profiles folder and bot accounts state
+  const [selectedProfilesFolder, setSelectedProfilesFolder] = useState<File | null>(null);
+  const [uploadingProfiles, setUploadingProfiles] = useState(false);
+  const [botAccounts, setBotAccounts] = useState<{accounts: {account_id: number, reddit_username: string}[], total_accounts: number} | null>(null);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<{show: boolean, accountId: number, username: string}>({show: false, accountId: 0, username: ''});
+
   // Check if user is admin (this should match the backend admin email check)
   const isAdmin = user?.email === import.meta.env.VITE_ADMIN_EMAIL || user?.email === 'admin@upvotezone.com';
 
   useEffect(() => {
     if (isAdmin) {
       fetchAdminData();
-      fetchBotConfig();
       fetchProxies();
       fetchSystemSettings();
+      fetchBotAccounts();
     }
   }, [isAdmin]);
 
@@ -167,18 +171,6 @@ const AdminPage: React.FC = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchBotConfig = async () => {
-    try {
-      setLoadingConfig(true);
-      const config = await api.admin.getBotConfig();
-      setBotConfig(config);
-    } catch (error) {
-      console.error('Failed to fetch bot config:', error);
-    } finally {
-      setLoadingConfig(false);
     }
   };
 
@@ -221,6 +213,19 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  const fetchBotAccounts = async () => {
+    try {
+      setLoadingAccounts(true);
+      const accountsData = await api.admin.getBotAccounts();
+      setBotAccounts(accountsData);
+    } catch (error) {
+      console.error('Failed to fetch bot accounts:', error);
+      // Don't show error toast for accounts as it's optional
+    } finally {
+      setLoadingAccounts(false);
+    }
+  };
+
   const updateSystemSettings = async () => {
     try {
       setSavingSettings(true);
@@ -252,6 +257,7 @@ const AdminPage: React.FC = () => {
     }
 
     try {
+      setAddingProxy(true);
       await api.admin.addProxy(newProxy);
       
       toast({
@@ -275,6 +281,8 @@ const AdminPage: React.FC = () => {
         description: error instanceof Error ? error.message : "Failed to add proxy",
         variant: "destructive"
       });
+    } finally {
+      setAddingProxy(false);
     }
   };
 
@@ -299,49 +307,87 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfilesFolderSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
+      if (!file.name.endsWith('.zip')) {
+        toast({
+          title: "Error",
+          description: "Please select a ZIP file containing the profiles folder",
+          variant: "destructive"
+        });
+        return;
+      }
+      setSelectedProfilesFolder(file);
     }
   };
 
-  const handleUploadConfig = async () => {
-    if (!selectedFile) {
+  const handleUploadProfilesFolder = async () => {
+    if (!selectedProfilesFolder) {
       toast({
         title: "Error",
-        description: "Please select a file to upload",
+        description: "Please select a profiles folder ZIP file to upload",
         variant: "destructive"
       });
       return;
     }
 
     try {
-      setUploading(true);
-      const result = await api.admin.uploadBotConfig(selectedFile);
+      setUploadingProfiles(true);
+      const result = await api.admin.uploadProfilesFolder(selectedProfilesFolder);
       
       toast({
         title: "Success",
-        description: `Bot configuration uploaded successfully: ${result.filename}`,
+        description: `Profiles folder uploaded successfully with ${result.total_accounts} accounts`,
       });
       
-      setSelectedFile(null);
+      setSelectedProfilesFolder(null);
       // Reset file input
-      const fileInput = document.getElementById('config-file') as HTMLInputElement;
+      const fileInput = document.getElementById('profiles-folder-file') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
       
-      // Refresh bot config
-      await fetchBotConfig();
+      // Refresh bot accounts
+      await fetchBotAccounts();
       
     } catch (error) {
       console.error('Upload failed:', error);
       toast({
         title: "Upload Failed",
-        description: error instanceof Error ? error.message : "Failed to upload configuration",
+        description: error instanceof Error ? error.message : "Failed to upload profiles folder",
         variant: "destructive"
       });
     } finally {
-      setUploading(false);
+      setUploadingProfiles(false);
+    }
+  };
+
+  const handleDeleteBotAccount = async (accountId: number, redditUsername: string) => {
+    // Show confirmation dialog
+    setShowDeleteConfirm({show: true, accountId, username: redditUsername});
+  };
+
+  const confirmDeleteBotAccount = async () => {
+    try {
+      const { accountId, username } = showDeleteConfirm;
+      const result = await api.admin.deleteBotAccount(accountId);
+      
+      toast({
+        title: "Success",
+        description: `Account ${accountId} (${username}) deleted successfully`,
+      });
+      
+      // Refresh bot accounts list
+      await fetchBotAccounts();
+      
+    } catch (error) {
+      console.error('Delete account failed:', error);
+      toast({
+        title: "Delete Failed",
+        description: error instanceof Error ? error.message : "Failed to delete account",
+        variant: "destructive"
+      });
+    } finally {
+      setShowDeleteConfirm({show: false, accountId: 0, username: ''});
     }
   };
 
@@ -624,123 +670,181 @@ const AdminPage: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="bot-setup" className="space-y-6">
+          {/* Profiles Folder Upload Section */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Settings className="h-5 w-5 mr-2" />
-                Bot Configuration
+                <Users className="h-5 w-5 mr-2" />
+                Bot Profiles Management
               </CardTitle>
               <CardDescription>
-                Upload and manage bot configuration files. Supports JSON and YAML formats.
+                Upload profiles folder from your local bot instance and manage bot accounts.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Current Config Status */}
+              {/* Current Accounts Status */}
               <div className="p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-semibold flex items-center">
-                      <FileCode className="h-4 w-4 mr-2" />
-                      Current Configuration
+                      <Users className="h-4 w-4 mr-2" />
+                      Current Bot Accounts
                     </h4>
-                    {loadingConfig ? (
-                      <p className="text-sm text-gray-600 mt-1">Loading...</p>
-                    ) : botConfig?.config_data ? (
+                    {loadingAccounts ? (
+                      <p className="text-sm text-gray-600 mt-1">Loading accounts...</p>
+                    ) : botAccounts?.accounts?.length ? (
                       <div className="mt-2 space-y-1">
                         <p className="text-sm text-gray-600">
-                          Version: {botConfig.version || 'Unknown'}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Uploaded: {formatDate(botConfig.uploaded_at)}
+                          Total Accounts: {botAccounts.total_accounts}
                         </p>
                         <Badge className="mt-2">
                           <CheckCircle className="h-3 w-3 mr-1" />
-                          Active
+                          {botAccounts.total_accounts} Accounts Available
                         </Badge>
                       </div>
                     ) : (
                       <div className="mt-2">
                         <Badge variant="secondary">
                           <AlertTriangle className="h-3 w-3 mr-1" />
-                          No Configuration
+                          No Profiles Found
                         </Badge>
-                        <p className="text-sm text-gray-600 mt-1">No bot configuration uploaded yet</p>
+                        <p className="text-sm text-gray-600 mt-1">No profiles folder uploaded yet</p>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Upload Section */}
+              {/* Upload Profiles Folder Section */}
               <div className="space-y-4">
-                <h4 className="font-semibold">Upload New Configuration</h4>
-                <div className="flex items-center gap-4">
-                  <Input
-                    id="config-file"
-                    type="file"
-                    accept=".json,.yaml,.yml"
-                    onChange={handleFileSelect}
-                    className="flex-1"
-                  />
-                  <Button 
-                    onClick={handleUploadConfig}
-                    disabled={!selectedFile || uploading}
-                    className="whitespace-nowrap"
-                  >
-                    {uploading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Config
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <h4 className="font-semibold">Upload Profiles Folder</h4>
                 
-                {selectedFile && (
-                  <div className="p-3 bg-blue-50 rounded border border-blue-200">
-                    <p className="text-sm text-blue-800">
-                      <strong>Selected file:</strong> {selectedFile.name}
-                    </p>
-                    <p className="text-xs text-blue-600 mt-1">
-                      File size: {(selectedFile.size / 1024).toFixed(1)} KB
-                    </p>
+                {/* File Upload Area */}
+                <div className="border-2 border-dashed border-upvote-primary/30 rounded-lg p-6 bg-upvote-primary/5 hover:bg-upvote-primary/10 transition-colors">
+                  <div className="text-center space-y-4">
+                    <div className="flex justify-center">
+                      <div className="p-3 bg-upvote-primary/10 rounded-full">
+                        <Upload className="h-8 w-8 text-upvote-primary" />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <p className="text-lg font-medium text-gray-900 mb-2">
+                        Choose Profiles Folder
+                      </p>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Select a ZIP file containing your bot's profiles folder
+                      </p>
+                      
+                      <label htmlFor="profiles-folder-file" className="cursor-pointer">
+                        <Button 
+                          type="button"
+                          variant="default"
+                          size="lg"
+                          className="bg-upvote-primary hover:bg-upvote-primary/90 text-white font-bold px-10 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                          asChild
+                        >
+                          <span>
+                            <Upload className="h-6 w-6 mr-3" />
+                            Choose ZIP File
+                          </span>
+                        </Button>
+                      </label>
+                      
+                      <Input
+                        id="profiles-folder-file"
+                        type="file"
+                        accept=".zip"
+                        onChange={handleProfilesFolderSelect}
+                        className="hidden"
+                      />
+                    </div>
+                    
+                    {selectedProfilesFolder && (
+                      <div className="mt-4">
+                        <div className="p-3 bg-green-50 rounded border border-green-200">
+                          <p className="text-sm text-green-800 font-medium">
+                            ✓ Selected file: {selectedProfilesFolder.name}
+                          </p>
+                          <p className="text-xs text-green-600 mt-1">
+                            File size: {(selectedProfilesFolder.size / 1024 / 1024).toFixed(1)} MB
+                          </p>
+                        </div>
+                        
+                        <Button 
+                          onClick={handleUploadProfilesFolder}
+                          disabled={uploadingProfiles}
+                          className="mt-3 w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
+                          size="lg"
+                        >
+                          {uploadingProfiles ? (
+                            <>
+                              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                              Uploading Profiles...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-5 w-5 mr-2" />
+                              Upload Profiles Folder
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
 
                 <div className="text-xs text-gray-500 space-y-1">
-                  <p>• Supported formats: JSON (.json), YAML (.yml, .yaml)</p>
-                  <p>• Maximum file size: 1 MB</p>
-                  <p>• Uploading a new configuration will replace the current one</p>
+                  <p>• Upload a ZIP file containing the 'profiles' folder from your local bot instance</p>
+                  <p>• The profiles folder should contain an 'accounts.json' file</p>
+                  <p>• Maximum file size: 50 MB</p>
                 </div>
               </div>
 
-              {/* View Current Config */}
-              {botConfig?.config_data && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full">
-                      <FileCode className="h-4 w-4 mr-2" />
-                      View Current Configuration
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
-                    <DialogHeader>
-                      <DialogTitle>Current Bot Configuration</DialogTitle>
-                      <DialogDescription>
-                        Version {botConfig.version} • Uploaded {formatDate(botConfig.uploaded_at)}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <pre className="bg-gray-100 p-4 rounded text-xs overflow-auto">
-                      {JSON.stringify(botConfig.config_data, null, 2)}
-                    </pre>
-                  </DialogContent>
-                </Dialog>
-              )}
+              {/* Bot Accounts List */}
+              {botAccounts?.accounts?.length ? (
+                <div className="space-y-4">
+                  <h4 className="font-semibold">Available Bot Accounts</h4>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Account ID</TableHead>
+                          <TableHead>Reddit Username</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {botAccounts.accounts.map((account) => (
+                          <TableRow key={account.account_id}>
+                            <TableCell className="font-medium">{account.account_id}</TableCell>
+                            <TableCell>{account.reddit_username}</TableCell>
+                            <TableCell>
+                              <Badge className="bg-green-100 text-green-800">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Active
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  onClick={() => handleDeleteBotAccount(account.account_id, account.reddit_username)} 
+                                  variant="destructive" 
+                                  size="icon"
+                                  aria-label="Delete account"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1063,9 +1167,9 @@ const AdminPage: React.FC = () => {
             </Button>
             <Button 
               onClick={handleAddProxy}
-              disabled={uploading}
+              disabled={addingProxy}
             >
-              {uploading ? (
+              {addingProxy ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Adding...
@@ -1073,6 +1177,46 @@ const AdminPage: React.FC = () => {
               ) : (
                 "Add Proxy"
               )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Account Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm.show} onOpenChange={(open) => !open && setShowDeleteConfirm({show: false, accountId: 0, username: ''})}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Bot Account</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this bot account? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+              <p className="text-sm text-red-800">
+                <strong>Account ID:</strong> {showDeleteConfirm.accountId}
+              </p>
+              <p className="text-sm text-red-800">
+                <strong>Username:</strong> {showDeleteConfirm.username}
+              </p>
+              <p className="text-xs text-red-600 mt-2">
+                This will remove the account from accounts.json and delete its folder from the profiles directory.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button 
+              onClick={() => setShowDeleteConfirm({show: false, accountId: 0, username: ''})} 
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={confirmDeleteBotAccount}
+              variant="destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Account
             </Button>
           </div>
         </DialogContent>

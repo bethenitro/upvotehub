@@ -1,7 +1,11 @@
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
+import os
+import json
+import time
 from bson import ObjectId
 from ..config.database import Database, Collections
+from ..config.settings import get_settings
 from ..utils.logger import logger
 from ..services.user_service import UserService
 from ..services.order_service import OrderService
@@ -432,47 +436,34 @@ class AdminService:
     async def get_proxies() -> Dict[str, Any]:
         """Get current proxy configurations from file"""
         try:
-            from ..config.settings import get_settings
-            import os
-            import json
-            
-            settings = get_settings()
-            proxy_file_path = settings.PROXY_CONFIG_FILE
-            
-            logger.info("get_proxies_started", proxy_file_path=proxy_file_path)
+            proxy_file_path = get_settings().PROXY_CONFIG_FILE
             
             if not os.path.exists(proxy_file_path):
-                logger.info("proxy_file_not_found", proxy_file_path=proxy_file_path)
-                # Create directory if it doesn't exist
-                os.makedirs(os.path.dirname(proxy_file_path), exist_ok=True)
-                logger.info("proxy_directory_created", directory=os.path.dirname(proxy_file_path))
-                # Create empty proxy file
-                with open(proxy_file_path, 'w') as f:
-                    json.dump([], f)
-                logger.info("empty_proxy_file_created", proxy_file_path=proxy_file_path)
-                return {"proxies": [], "total_count": 0}
+                logger.warning("proxy_config_file_not_found", path=proxy_file_path)
+                return {
+                    "proxies": [],
+                    "total_count": 0,
+                    "message": "Proxy configuration file not found"
+                }
             
             with open(proxy_file_path, 'r') as f:
-                proxies = json.load(f)
+                proxies_data = json.load(f)
             
-            # Ensure proxies is a list
-            if not isinstance(proxies, list):
-                logger.warning("proxy_file_invalid_format", 
-                    proxy_file_path=proxy_file_path, 
-                    type_found=type(proxies).__name__)
-                proxies = []
+            # Convert to list format if it's a dict
+            if isinstance(proxies_data, dict):
+                proxies_list = list(proxies_data.values())
+            else:
+                proxies_list = proxies_data
             
-            logger.info("proxies_loaded_successfully", 
-                proxy_count=len(proxies), 
-                proxy_file_path=proxy_file_path)
+            logger.info("proxies_retrieved", count=len(proxies_list))
             
             return {
-                "proxies": proxies,
-                "total_count": len(proxies)
+                "proxies": proxies_list,
+                "total_count": len(proxies_list)
             }
             
         except Exception as e:
-            logger.error("get_proxies_failed", error=str(e), proxy_file_path=proxy_file_path)
+            logger.error("get_proxies_failed", error=str(e))
             raise
 
     @staticmethod
@@ -667,3 +658,196 @@ class AdminService:
                 proxy_index=proxy_index,
                 proxy_file_path=proxy_file_path)
             raise
+
+    @staticmethod
+    async def upload_profiles_folder(folder_file) -> Dict[str, Any]:
+        """Upload and extract profiles folder to BOT_WORKING_DIRECTORY"""
+        import zipfile
+        import tempfile
+        import shutil
+        from ..config.settings import get_settings
+        
+        try:
+            settings = get_settings()
+            bot_working_dir = settings.BOT_WORKING_DIRECTORY
+            
+            # Create a temporary directory to extract the zip
+            with tempfile.TemporaryDirectory() as temp_dir:
+                # Save the uploaded file temporarily
+                temp_zip_path = os.path.join(temp_dir, "profiles.zip")
+                content = await folder_file.read()
+                
+                with open(temp_zip_path, "wb") as temp_file:
+                    temp_file.write(content)
+                
+                # Extract the zip file
+                with zipfile.ZipFile(temp_zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(temp_dir)
+                
+                # Find the profiles folder in the extracted content
+                profiles_folder_path = None
+                for root, dirs, files in os.walk(temp_dir):
+                    if "profiles" in dirs:
+                        profiles_folder_path = os.path.join(root, "profiles")
+                        break
+                    elif os.path.basename(root) == "profiles":
+                        profiles_folder_path = root
+                        break
+                
+                if not profiles_folder_path:
+                    return {
+                        "success": False,
+                        "error": "No 'profiles' folder found in the uploaded zip file"
+                    }
+                
+                # Check if accounts.json exists in the profiles folder
+                accounts_file_path = os.path.join(profiles_folder_path, "accounts.json")
+                if not os.path.exists(accounts_file_path):
+                    return {
+                        "success": False,
+                        "error": "No 'accounts.json' file found in the profiles folder"
+                    }
+                
+                # Destination path in bot working directory
+                dest_profiles_path = os.path.join(bot_working_dir, "profiles")
+                
+                # Remove existing profiles folder if it exists (overwrite)
+                if os.path.exists(dest_profiles_path):
+                    shutil.rmtree(dest_profiles_path)
+                    logger.info("existing_profiles_removed", dest_path=dest_profiles_path)
+                
+                # Copy the new profiles folder
+                shutil.copytree(profiles_folder_path, dest_profiles_path)
+                
+                # Parse accounts from accounts.json in the destination folder
+                dest_accounts_file_path = os.path.join(dest_profiles_path, "accounts.json")
+                with open(dest_accounts_file_path, 'r') as f:
+                    accounts_data = json.load(f)
+                
+                accounts = []
+                for account_id, account_info in accounts_data.items():
+                    accounts.append({
+                        "account_id": account_info.get("account_id", int(account_id)),
+                        "reddit_username": account_info.get("reddit_username", "")
+                    })
+                
+                logger.info("profiles_folder_uploaded", 
+                    dest_path=dest_profiles_path,
+                    total_accounts=len(accounts))
+                
+                return {
+                    "success": True,
+                    "message": f"Profiles folder uploaded successfully with {len(accounts)} accounts",
+                    "accounts": accounts,
+                    "total_accounts": len(accounts)
+                }
+                
+        except Exception as e:
+            logger.error("upload_profiles_folder_failed", error=str(e))
+            return {
+                "success": False,
+                "error": f"Failed to upload profiles folder: {str(e)}"
+            }
+
+    @staticmethod
+    async def get_bot_accounts() -> Dict[str, Any]:
+        """Get list of accounts from the profiles folder"""
+        try:
+            settings = get_settings()
+            bot_working_dir = settings.BOT_WORKING_DIRECTORY
+            accounts_file_path = os.path.join(bot_working_dir, "profiles", "accounts.json")
+            
+            if not os.path.exists(accounts_file_path):
+                return {
+                    "accounts": [],
+                    "total_accounts": 0,
+                    "message": "No accounts file found. Please upload a profiles folder first."
+                }
+            
+            with open(accounts_file_path, 'r') as f:
+                accounts_data = json.load(f)
+            
+            accounts = []
+            for account_id, account_info in accounts_data.items():
+                accounts.append({
+                    "account_id": account_info.get("account_id", int(account_id)),
+                    "reddit_username": account_info.get("reddit_username", "")
+                })
+            
+            logger.info("bot_accounts_retrieved", total_accounts=len(accounts))
+            
+            return {
+                "accounts": accounts,
+                "total_accounts": len(accounts)
+            }
+            
+        except Exception as e:
+            logger.error("get_bot_accounts_failed", error=str(e))
+            raise
+
+    @staticmethod
+    async def delete_bot_account(account_id: int) -> Dict[str, Any]:
+        """Delete a bot account (remove from JSON and delete folder)"""
+        try:
+            settings = get_settings()
+            bot_working_dir = settings.BOT_WORKING_DIRECTORY
+            accounts_file_path = os.path.join(bot_working_dir, "profiles", "accounts.json")
+            profiles_dir = os.path.join(bot_working_dir, "profiles")
+            
+            if not os.path.exists(accounts_file_path):
+                return {
+                    "success": False,
+                    "error": "No accounts file found"
+                }
+            
+            # Read current accounts
+            with open(accounts_file_path, 'r') as f:
+                accounts_data = json.load(f)
+            
+            # Check if account exists
+            account_id_str = str(account_id)
+            if account_id_str not in accounts_data:
+                return {
+                    "success": False,
+                    "error": f"Account with ID {account_id} not found"
+                }
+            
+            # Get account info before deletion
+            account_info = accounts_data[account_id_str]
+            reddit_username = account_info.get("reddit_username", "")
+            
+            # Remove account from JSON
+            del accounts_data[account_id_str]
+            
+            # Write updated accounts.json
+            with open(accounts_file_path, 'w') as f:
+                json.dump(accounts_data, f, indent=2)
+            
+            # Delete account folder if it exists
+            account_folder_path = os.path.join(profiles_dir, str(account_id))
+            if os.path.exists(account_folder_path):
+                import shutil
+                shutil.rmtree(account_folder_path)
+                logger.info("account_folder_deleted", 
+                    account_id=account_id,
+                    folder_path=account_folder_path)
+            
+            logger.info("bot_account_deleted", 
+                account_id=account_id,
+                reddit_username=reddit_username)
+            
+            return {
+                "success": True,
+                "message": f"Account {account_id} ({reddit_username}) deleted successfully",
+                "deleted_account": {
+                    "account_id": account_id,
+                    "reddit_username": reddit_username
+                }
+            }
+            
+        except Exception as e:
+            logger.error("delete_bot_account_failed", error=str(e), account_id=account_id)
+            return {
+                "success": False,
+                "error": f"Failed to delete account: {str(e)}"
+            }

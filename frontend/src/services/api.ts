@@ -639,7 +639,77 @@ export const api = {
     },
 
     /**
-     * Get system settings for order limits
+     * Upload profiles folder (zip file)
+     */
+    uploadProfilesFolder: async (file: File) => {
+      try {
+        const formData = new FormData();
+        formData.append('folder_file', file);
+
+        const response = await fetch(`${API_BASE_URL}/api/admin/profiles-folder/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${getAuthToken()}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Failed to upload profiles folder');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error uploading profiles folder:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get bot accounts from profiles folder
+     */
+    getBotAccounts: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/bot-accounts`, {
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch bot accounts');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching bot accounts:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Delete a bot account
+     */
+    deleteBotAccount: async (accountId: number) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/bot-accounts/${accountId}`, {
+          method: 'DELETE',
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Failed to delete bot account');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error deleting bot account:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get system settings
      */
     getSystemSettings: async () => {
       try {
@@ -659,14 +729,9 @@ export const api = {
     },
 
     /**
-     * Update system settings for order limits
+     * Update system settings
      */
-    updateSystemSettings: async (settings: {
-      min_upvotes: number;
-      max_upvotes: number;
-      min_upvotes_per_minute: number;
-      max_upvotes_per_minute: number;
-    }) => {
+    updateSystemSettings: async (settings: any) => {
       try {
         const response = await fetch(`${API_BASE_URL}/api/admin/settings`, {
           method: 'POST',
