@@ -61,7 +61,7 @@ class TaskManager:
         logger.info("background_tasks_stopped")
 
     async def schedule_order_processing(self, order_data: Dict[str, Any]):
-        """Add order to processing queue"""
+        """Add order to processing queue (deprecated - use schedule_bot_order_processing)"""
         try:
             await self.order_queue.put(order_data)
             logger.info("order_scheduled", 
@@ -70,6 +70,20 @@ class TaskManager:
             )
         except Exception as e:
             logger.error("order_scheduling_failed", 
+                order_id=order_data["id"],
+                error=str(e)
+            )
+
+    async def schedule_bot_order_processing(self, order_data: Dict[str, Any]):
+        """Add order to bot backend processing queue"""
+        try:
+            await self.order_queue.put(order_data)
+            logger.info("bot_order_scheduled", 
+                order_id=order_data["id"],
+                queue_size=self.order_queue.qsize()
+            )
+        except Exception as e:
+            logger.error("bot_order_scheduling_failed", 
                 order_id=order_data["id"],
                 error=str(e)
             )
@@ -123,11 +137,11 @@ class TaskManager:
                 await asyncio.sleep(1)
 
     async def _process_single_order(self, order_data: Dict[str, Any]):
-        """Process a single order"""
+        """Process a single order using bot backend"""
         order_id = order_data["id"]
         try:
             from ..services.order_service import OrderService
-            result = await OrderService.process_order_with_script(order_data)
+            result = await OrderService.process_order_with_bot_backend(order_data)
             
             logger.info("order_processing_completed", 
                 order_id=order_id,

@@ -1,0 +1,70 @@
+2025-06-17 18:25:09,883 - INFO - main - Received new order: 685165ada44320e5acc18eaa for URL: https://www.reddit.com/r/indiasocial/comments/1ldgwzd/couple_goals_wife_and_i/
+2025-06-17 18:25:09,885 - INFO - main - Order 685165ada44320e5acc18eaa started successfully
+2025-06-17 18:32:16,183 - INFO - main - Received new order: 68516758a44320e5acc18ee9 for URL: https://www.reddit.com/r/indiasocial/comments/1ldgwzd/couple_goals_wife_and_i/
+2025-06-17 18:32:16,184 - INFO - main - Order 68516758a44320e5acc18ee9 started successfully
+2025-06-17 18:35:08,130 - INFO - main - Received new order: 68516804a44320e5acc18f28 for URL: https://www.reddit.com/r/worldnews/comments/1la27h6/israel_launches_preemptive_strike_against_iran/
+2025-06-17 18:35:08,131 - INFO - main - Order 68516804a44320e5acc18f28 started successfully
+2025-06-17 18:37:12,794 - INFO - main - Received new order: 68516880a44320e5acc18f48 for URL: https://www.reddit.com/r/worldnews/comments/1la27h6/israel_launches_preemptive_strike_against_iran/
+2025-06-17 18:37:12,796 - INFO - main - Order 68516880a44320e5acc18f48 started successfully
+2025-06-17 19:05:42,384 - INFO - order_history - Created new order history file: order_history.json
+2025-06-17 19:06:10,102 - INFO - script - Completed restart recovery process
+2025-06-17 19:06:17,229 - INFO - script - Completed restart recovery process
+2025-06-17 19:06:25,264 - INFO - script - Completed restart recovery process
+2025-06-17 19:06:39,056 - INFO - script - Completed restart recovery process
+2025-06-17 19:06:48,518 - INFO - script - Completed restart recovery process
+2025-06-17 19:07:04,454 - INFO - script - Completed restart recovery process
+2025-06-17 19:08:06,495 - INFO - script - Completed restart recovery process
+2025-06-17 19:08:06,499 - INFO - main - Bot backend starting up...
+2025-06-17 19:08:06,499 - INFO - main - Bot backend startup completed
+2025-06-17 19:08:26,200 - INFO - script - Completed restart recovery process
+2025-06-17 19:08:26,205 - INFO - main - Bot backend starting up...
+2025-06-17 19:08:26,205 - INFO - main - Bot backend startup completed
+2025-06-17 19:09:12,830 - INFO - script - Completed restart recovery process
+2025-06-17 19:09:12,834 - INFO - main - Bot backend starting up...
+2025-06-17 19:09:12,834 - INFO - main - Bot backend startup completed
+2025-06-17 19:09:57,087 - INFO - script - Completed restart recovery process
+2025-06-17 19:09:57,088 - INFO - script - Completed restart recovery process
+2025-06-17 19:09:57,092 - INFO - main - Bot backend starting up...
+2025-06-17 19:09:57,092 - INFO - main - Bot backend startup completed
+2025-06-17 19:10:15,393 - INFO - script - Completed restart recovery process
+2025-06-17 19:10:15,397 - INFO - main - Bot backend starting up...
+2025-06-17 19:10:15,397 - INFO - main - Bot backend startup completed
+2025-06-17 19:11:28,409 - INFO - script - Completed restart recovery process
+2025-06-17 19:11:28,504 - INFO - __main__ - Bot backend starting up...
+2025-06-17 19:11:28,504 - INFO - __main__ - Bot backend startup completed
+2025-06-17 19:15:43,283 - INFO - __main__ - Received new order: test_123 for URL: https://reddit.com/r/test/comments/123/test
+2025-06-17 19:15:43,285 - INFO - order_history - Added order test_123 to history
+2025-06-17 19:15:43,285 - INFO - __main__ - Order test_123 started successfully
+2025-06-17 19:20:26,951 - INFO - script - Completed restart recovery process
+2025-06-17 19:20:27,002 - INFO - __main__ - Bot backend starting up...
+2025-06-17 19:20:27,002 - INFO - __main__ - Bot backend startup completed
+2025-06-17 19:20:34,517 - INFO - script - Completed restart recovery process
+2025-06-17 19:20:34,522 - INFO - main - Bot backend starting up...
+2025-06-17 19:20:34,522 - INFO - main - Bot backend startup completed
+2025-06-17 19:40:06,963 - INFO - script - Completed restart recovery process
+2025-06-17 19:40:06,969 - INFO - main - Bot backend starting up...
+2025-06-17 19:40:06,969 - INFO - main - Bot backend startup completed
+2025-06-17 19:40:54,637 - INFO - script - Completed restart recovery process
+2025-06-17 19:40:54,642 - INFO - main - Bot backend starting up...
+2025-06-17 19:40:54,642 - INFO - main - Bot backend startup completed
+2025-06-17 19:40:55,877 - INFO - script - Completed restart recovery process
+2025-06-17 19:40:55,882 - INFO - main - Bot backend starting up...
+2025-06-17 19:40:55,882 - INFO - main - Bot backend startup completed
+2025-06-17 19:46:14,613 - INFO - script - Completed restart recovery process
+2025-06-17 19:46:14,618 - INFO - main - Bot backend starting up...
+2025-06-17 19:46:14,618 - INFO - main - Bot backend startup completed
+2025-06-17 19:46:22,070 - INFO - script - Completed restart recovery process
+2025-06-17 19:46:22,074 - INFO - main - Bot backend starting up...
+2025-06-17 19:46:22,074 - INFO - main - Bot backend startup completed
+2025-06-17 19:46:29,000 - INFO - script - Completed restart recovery process
+2025-06-17 19:46:29,004 - INFO - main - Bot backend starting up...
+2025-06-17 19:46:29,005 - INFO - main - Bot backend startup completed
+2025-06-17 19:46:38,252 - INFO - script - Completed restart recovery process
+2025-06-17 19:46:38,257 - INFO - main - Bot backend starting up...
+2025-06-17 19:46:38,257 - INFO - main - Bot backend startup completed
+2025-06-17 19:46:45,375 - INFO - script - Completed restart recovery process
+2025-06-17 19:46:45,379 - INFO - main - Bot backend starting up...
+2025-06-17 19:46:45,380 - INFO - main - Bot backend startup completed
+2025-06-17 19:51:35,899 - INFO - script - Completed restart recovery process
+2025-06-17 19:51:35,904 - INFO - main - Bot backend starting up...
+2025-06-17 19:51:35,904 - INFO - main - Bot backend startup completed

@@ -212,14 +212,14 @@ const NewOrder = () => {
                   </div>
                   <Slider
                     id="upvotes"
-                    min={5}
+                    min={2}
                     max={600}
                     step={5}
                     value={[upvotes]}
                     onValueChange={(value) => setUpvotes(value[0])}
                   />
                   <div className="flex justify-between text-xs text-gray-500">
-                    <span>5</span>
+                    <span>2</span>
                     <span>600</span>
                   </div>
                 </div>

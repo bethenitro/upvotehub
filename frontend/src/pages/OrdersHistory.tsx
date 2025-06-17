@@ -56,6 +56,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 // Define the Order type (matching backend response)
 interface Order {
@@ -70,8 +71,6 @@ interface Order {
   started_at?: string;
   cancelled_at?: string;
   cost: number;
-  upvotes_processed?: number;
-  progress_percentage?: number;
   error_message?: string;
   payment_id?: string;
   card_last4?: string;
@@ -87,19 +86,126 @@ const OrdersHistory = () => {
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isRefreshingActiveOrders, setIsRefreshingActiveOrders] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const { data: ordersData, isLoading, error } = useQuery({
+  const { data: ordersData, isLoading, error, refetch } = useQuery({
     queryKey: ['orders'],
     queryFn: api.orders.getOrders,
+    refetchOnMount: 'always',  // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    staleTime: 0, // Consider data immediately stale so it refetches
+    gcTime: 0, // Don't cache data to ensure fresh data each time
+    refetchInterval: 30000, // Refetch every 30 seconds for active orders
   });
 
   useEffect(() => {
     if (ordersData) {
       // Cast the data to Order[] to ensure type compatibility
       setOrders(ordersData as Order[]);
+      
+      // Only show success toast when data is refreshed after initial load
+      // and when not during auto-refresh
+      if (orders.length > 0 && !isRefreshingActiveOrders) {
+        toast({
+          title: "Orders Updated",
+          description: "Successfully refreshed order statuses.",
+        });
+      }
     }
-  }, [ordersData]);
+  }, [ordersData, toast, isRefreshingActiveOrders]); // Updated dependencies
+
+  // Refresh all order statuses after orders are loaded
+  useEffect(() => {
+    if (orders.length > 0 && !isRefreshingActiveOrders) {
+      refreshAllOrderStatuses();
+    }
+  }, [orders.length]); // Trigger when orders are first loaded
+
+  // Refetch data when component mounts to ensure fresh order statuses
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  // Function to refresh statuses for all orders from backend
+  const refreshAllOrderStatuses = async (showToast = false) => {
+    if (!orders || orders.length === 0) return;
+    
+    setIsRefreshingActiveOrders(true);
+    
+    // Refresh statuses for all orders in parallel
+    const statusPromises = orders.map(async (order) => {
+      try {
+        const statusData = await api.orders.getOrderStatus(order.id);
+        if (statusData) {
+          return {
+            orderId: order.id,
+            statusData: statusData
+          };
+        }
+      } catch (error) {
+        console.warn(`Failed to refresh status for order ${order.id}:`, error);
+      }
+      return null;
+    });
+    
+    const statusResults = await Promise.all(statusPromises);
+    
+    // Update orders with fresh status data
+    const updatedOrders = [...orders];
+    let hasUpdates = false;
+    
+    statusResults.forEach(result => {
+      if (result) {
+        const orderIndex = updatedOrders.findIndex(o => o.id === result.orderId);
+        if (orderIndex !== -1) {
+          const currentOrder = updatedOrders[orderIndex];
+          const newStatus = result.statusData.status;
+          
+          // Only update if status actually changed
+          if (currentOrder.status !== newStatus) {
+            updatedOrders[orderIndex] = {
+              ...currentOrder,
+              status: newStatus,
+              error_message: result.statusData.error_message || currentOrder.error_message
+            };
+            hasUpdates = true;
+          }
+        }
+      }
+    });
+    
+    if (hasUpdates) {
+      setOrders(updatedOrders);
+      if (showToast) {
+        toast({
+          title: "Orders Updated",
+          description: "Order statuses have been refreshed successfully.",
+        });
+      }
+    }
+    
+    setIsRefreshingActiveOrders(false);
+  };
+
+  // Auto-refresh for active orders every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const activeOrders = orders.filter(order => 
+        ['pending', 'processing', 'in-progress'].includes(order.status?.toLowerCase())
+      );
+      
+      if (activeOrders.length > 0 && !isRefreshingActiveOrders) {
+        // Refetch all orders to get latest status from database
+        refetch();
+        // Also refresh individual statuses from processing system (no toast for auto-refresh)
+        refreshAllOrderStatuses(false);
+      }
+    }, 10000); // 10 seconds
+
+    return () => clearInterval(interval);
+  }, [orders, refetch, isRefreshingActiveOrders]);
 
   // Filter orders based on search query and status filter
   const filteredAndSortedOrders = useMemo(() => {
@@ -211,39 +317,14 @@ const OrdersHistory = () => {
         return <span className="text-muted-foreground italic">Waiting to start</span>;
       case 'in-progress':
       case 'processing':
-        const progress = order.progress_percentage || 0;
-        const processed = order.upvotes_processed || 0;
-        const total = order.upvotes || 0;
-        
-        // Show different progress displays based on available data
-        if (processed > 0 && total > 0) {
-          return (
-            <div className="flex flex-col">
-              <span className="text-blue-600 italic">Processing upvotes</span>
-              <span className="text-xs text-muted-foreground">
-                {processed}/{total} ({progress.toFixed(1)}%)
-              </span>
-            </div>
-          );
-        } else if (progress > 0) {
-          return (
-            <div className="flex flex-col">
-              <span className="text-blue-600 italic">Processing upvotes</span>
-              <span className="text-xs text-muted-foreground">
-                ~{progress.toFixed(1)}% complete
-              </span>
-            </div>
-          );
-        } else {
-          return (
-            <div className="flex flex-col">
-              <span className="text-blue-600 italic">Bot is running</span>
-              <span className="text-xs text-muted-foreground">
-                Processing {total} upvotes
-              </span>
-            </div>
-          );
-        }
+        return (
+          <div className="flex flex-col">
+            <span className="text-blue-600 italic">Bot is running</span>
+            <span className="text-xs text-muted-foreground">
+              Processing {order.upvotes} upvotes
+            </span>
+          </div>
+        );
       case 'failed':
         return <span className="text-red-500 italic">Failed</span>;
       case 'cancelled':
@@ -313,50 +394,6 @@ const OrdersHistory = () => {
                     <DollarSign className="h-4 w-4" />
                     {order.cost.toFixed(2)} credits
                   </p>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Progress</label>
-                  <div className="mt-1">
-                    {order.upvotes_processed !== undefined ? (
-                      <div className="space-y-1">
-                        <p className="font-medium">
-                          {order.upvotes_processed}/{order.upvotes} upvotes
-                        </p>
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div
-                            className="bg-upvote-primary h-2 rounded-full transition-all"
-                            style={{
-                              width: `${((order.upvotes_processed / order.upvotes) * 100)}%`
-                            }}
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {((order.upvotes_processed / order.upvotes) * 100).toFixed(1)}% complete
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-1">
-                        {order.status?.toLowerCase() === 'in-progress' || order.status?.toLowerCase() === 'processing' ? (
-                          <div>
-                            <p className="font-medium text-blue-600">Bot is currently processing</p>
-                            <p className="text-xs text-muted-foreground">
-                              Individual upvote tracking not available during processing
-                            </p>
-                          </div>
-                        ) : order.status?.toLowerCase() === 'completed' ? (
-                          <div>
-                            <p className="font-medium text-green-600">All {order.upvotes.toLocaleString()} upvotes completed</p>
-                            <div className="w-full bg-muted rounded-full h-2">
-                              <div className="bg-green-600 h-2 rounded-full w-full" />
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground">Not started</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
                 </div>
 
                 {order.payment_id && (
@@ -495,9 +532,16 @@ const OrdersHistory = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
-        <h1 className="text-2xl font-semibold">Orders History</h1>
+        <div>
+          <h1 className="text-2xl font-semibold">Orders History</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isLoading ? 'Loading orders...' : 
+             isRefreshingActiveOrders ? 'Synchronizing order statuses...' :
+             `Last updated: ${new Date().toLocaleTimeString()}`}
+          </p>
+        </div>
         
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">          
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input 
@@ -634,7 +678,17 @@ const OrdersHistory = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative">
+          {/* Loading overlay for active order refresh */}
+          {isRefreshingActiveOrders && (
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-md">
+              <div className="text-center">
+                <div className="w-8 h-8 border-4 border-upvote-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                <p className="text-sm text-muted-foreground">Synchronizing order statuses...</p>
+              </div>
+            </div>
+          )}
+          
           {isLoading ? (
             <div className="py-10 text-center">
               <div className="w-10 h-10 border-4 border-upvote-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
@@ -657,7 +711,7 @@ const OrdersHistory = () => {
                     <TableHead>Delivery Rate</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead>Progress/Completed</TableHead>
+                    <TableHead>Completed</TableHead>
                     <TableHead>Cost</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
@@ -670,8 +724,15 @@ const OrdersHistory = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredAndSortedOrders.map((order) => (
-                      <TableRow key={order.id} className="table-row">
+                    filteredAndSortedOrders.map((order) => {
+                      const isActiveOrder = ['pending', 'processing', 'in-progress'].includes(order.status?.toLowerCase());
+                      const isRowDisabled = isRefreshingActiveOrders && isActiveOrder;
+                      
+                      return (
+                        <TableRow 
+                          key={order.id} 
+                          className={`table-row ${isRowDisabled ? 'opacity-60 pointer-events-none' : ''}`}
+                        >
                         <TableCell className="font-mono text-xs">{order.id.slice(0, 8)}</TableCell>
                         <TableCell className="capitalize">{order.type}</TableCell>
                         <TableCell className="max-w-[180px] truncate">
@@ -713,7 +774,8 @@ const OrdersHistory = () => {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>

@@ -11,7 +11,7 @@ from app.utils.task_manager import task_manager
 from app.utils.monitoring import metrics_collector
 from app.utils.logger import logger
 from app.config.database import Database
-from app.routes import user_routes, order_routes, payment_routes, auth_routes, admin_routes
+from app.routes import user_routes, order_routes, payment_routes, auth_routes, admin_routes, bot_routes
 from app.config.settings import settings
 
 app = FastAPI(
@@ -79,6 +79,7 @@ app.include_router(user_routes.router, prefix="/api/users", tags=["users"])
 app.include_router(order_routes.router, prefix="/api/orders", tags=["orders"])
 app.include_router(payment_routes.router, prefix="/api/payments", tags=["payments"])
 app.include_router(admin_routes.router, prefix="/api/admin", tags=["admin"])
+app.include_router(bot_routes.router, prefix="/api/bot", tags=["bot"])
 
 @app.on_event("startup")
 async def startup_event():
@@ -89,9 +90,11 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Stop background tasks"""
+    """Stop background tasks and cleanup"""
+    from app.services.bot_client import bot_client
     await task_manager.stop()
     await Database.close_db()
+    await bot_client.close()
 
 @app.get("/health")
 async def health_check():

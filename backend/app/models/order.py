@@ -23,8 +23,6 @@ class OrderInDB(OrderBase):
     completed_at: Optional[datetime] = None
     cancelled_at: Optional[datetime] = None
     last_update: Optional[datetime] = None
-    upvotes_processed: int = 0
-    progress_percentage: float = 0.0
     error_message: Optional[str] = None
     payment_id: Optional[str] = None
     card_last4: Optional[str] = None
@@ -39,8 +37,6 @@ class Order(OrderBase):
     completed_at: Optional[datetime]
     cancelled_at: Optional[datetime]
     last_update: Optional[datetime]
-    upvotes_processed: int
-    progress_percentage: float
     error_message: Optional[str]
     payment_id: Optional[str]
     card_last4: Optional[str]
