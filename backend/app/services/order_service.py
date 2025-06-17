@@ -10,6 +10,7 @@ from ..config.settings import get_settings
 from ..utils.logger import logger
 from ..models.order import OrderInDB, Order, OrderCreate
 from ..utils.exceptions import OrderProcessingError
+from ..utils.validators import validate_upvotes, validate_upvotes_per_minute
 
 settings = get_settings()
 
@@ -17,6 +18,13 @@ class OrderService:
     @staticmethod
     async def create_order(user_id: str, order_data: OrderCreate) -> OrderInDB:
         db = Database.get_db()
+        
+        # Validate upvotes and upvotes per minute using dynamic limits
+        if not await validate_upvotes(order_data.upvotes):
+            raise OrderProcessingError("Invalid upvotes count - exceeds allowed limits")
+            
+        if not await validate_upvotes_per_minute(order_data.upvotes_per_minute or 1):
+            raise OrderProcessingError("Invalid upvotes per minute - exceeds allowed limits")
         
         # Calculate cost (0.008 credits per upvote)
         cost = order_data.upvotes * 0.008

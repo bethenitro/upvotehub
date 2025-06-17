@@ -206,6 +206,32 @@ export const api = {
   // Orders related endpoints
   orders: {
     /**
+     * Get current system limits for order validation
+     */
+    getLimits: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/orders/limits`, {
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch order limits');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching order limits:', error);
+        // Return default limits on error
+        return {
+          min_upvotes: 1,
+          max_upvotes: 1000,
+          min_upvotes_per_minute: 1,
+          max_upvotes_per_minute: 60
+        };
+      }
+    },
+
+    /**
      * Get all orders
      */
     getOrders: async () => {
@@ -608,6 +634,54 @@ export const api = {
         return await response.json();
       } catch (error) {
         console.error('Error deleting proxy:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get system settings for order limits
+     */
+    getSystemSettings: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/settings`, {
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch system settings');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching system settings:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Update system settings for order limits
+     */
+    updateSystemSettings: async (settings: {
+      min_upvotes: number;
+      max_upvotes: number;
+      min_upvotes_per_minute: number;
+      max_upvotes_per_minute: number;
+    }) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/settings`, {
+          method: 'POST',
+          headers: createHeaders(),
+          body: JSON.stringify(settings),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Failed to update system settings');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error updating system settings:', error);
         throw error;
       }
     }

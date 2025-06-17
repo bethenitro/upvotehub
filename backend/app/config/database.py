@@ -28,4 +28,6 @@ class Collections:
     PAYMENTS = "payments"
     ACCOUNT_ACTIVITY = "account_activity"
     PAYMENT_METHODS = "payment_methods"
-    BOT_CONFIGS = "bot_configs" 
+    BOT_CONFIGS = "bot_configs"
+    SYSTEM_SETTINGS = "system_settings"
+    SYSTEM_SETTINGS = "system_settings" 

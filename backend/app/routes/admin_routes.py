@@ -17,6 +17,12 @@ class ProxyConfig(BaseModel):
 class ProxyListRequest(BaseModel):
     proxies: List[ProxyConfig]
 
+class SystemSettingsRequest(BaseModel):
+    min_upvotes: int
+    max_upvotes: int
+    min_upvotes_per_minute: int
+    max_upvotes_per_minute: int
+
 router = APIRouter()
 
 @router.get("/stats")
@@ -43,6 +49,58 @@ async def get_user_management_data(admin_user: UserInDB = Depends(get_admin_user
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve user management data"
+        )
+
+@router.get("/settings")
+async def get_system_settings(admin_user: UserInDB = Depends(get_admin_user)):
+    """Get current system settings for order limits"""
+    try:
+        settings = await AdminService.get_system_settings()
+        return settings
+    except Exception as e:
+        logger.error("get_system_settings_failed", error=str(e), admin_email=admin_user.email)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve system settings"
+        )
+
+@router.post("/settings")
+async def update_system_settings(
+    settings: SystemSettingsRequest,
+    admin_user: UserInDB = Depends(get_admin_user)
+):
+    """Update system settings for order limits"""
+    try:
+        settings_data = {
+            "min_upvotes": settings.min_upvotes,
+            "max_upvotes": settings.max_upvotes,
+            "min_upvotes_per_minute": settings.min_upvotes_per_minute,
+            "max_upvotes_per_minute": settings.max_upvotes_per_minute
+        }
+        
+        success = await AdminService.update_system_settings(settings_data)
+        
+        if success:
+            logger.info("system_settings_updated_by_admin", 
+                admin_email=admin_user.email,
+                settings=settings_data)
+            return {
+                "success": True,
+                "message": "System settings updated successfully"
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid settings values"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("update_system_settings_failed", error=str(e), admin_email=admin_user.email)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update system settings"
         )
 
 @router.post("/bot-config/upload")

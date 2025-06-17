@@ -10,6 +10,13 @@ import { Slider } from '@/components/ui/slider';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+interface OrderLimits {
+  min_upvotes: number;
+  max_upvotes: number;
+  min_upvotes_per_minute: number;
+  max_upvotes_per_minute: number;
+}
+
 const NewOrder = () => {
   const { user, refreshUser } = useApp();
   const navigate = useNavigate();
@@ -20,20 +27,64 @@ const NewOrder = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [isReorder, setIsReorder] = useState(false);
+  const [orderLimits, setOrderLimits] = useState<OrderLimits>({
+    min_upvotes: 1,
+    max_upvotes: 1000,
+    min_upvotes_per_minute: 1,
+    max_upvotes_per_minute: 60
+  });
+  const [loadingLimits, setLoadingLimits] = useState(true);
+
+  // Fetch order limits on component mount
+  useEffect(() => {
+    const fetchOrderLimits = async () => {
+      try {
+        setLoadingLimits(true);
+        const limits = await api.orders.getLimits();
+        setOrderLimits(limits);
+        
+        // Update initial upvotes value to be within limits
+        const initialUpvotes = Math.max(limits.min_upvotes, Math.min(20, limits.max_upvotes));
+        setUpvotes(initialUpvotes);
+        
+        // Update initial upvotes per minute to be within limits
+        const initialUpvotesPerMinute = Math.max(limits.min_upvotes_per_minute, Math.min(1, limits.max_upvotes_per_minute));
+        setUpvotesPerMinute(initialUpvotesPerMinute);
+      } catch (error) {
+        console.error('Failed to fetch order limits:', error);
+        toast({
+          title: "Warning",
+          description: "Failed to load current order limits. Using default values.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingLimits(false);
+      }
+    };
+    
+    fetchOrderLimits();
+  }, []);
 
   // Handle reorder data from navigation state
   useEffect(() => {
     const reorderData = location.state?.reorderData;
-    if (reorderData) {
+    if (reorderData && !loadingLimits) {
       setRedditUrl(reorderData.redditUrl || '');
-      setUpvotes(reorderData.upvotes || 20);
-      setUpvotesPerMinute(reorderData.upvotesPerMinute || 1);
+      
+      // Ensure reorder values are within current limits
+      const safeUpvotes = Math.max(orderLimits.min_upvotes, 
+        Math.min(reorderData.upvotes || 20, orderLimits.max_upvotes));
+      const safeUpvotesPerMinute = Math.max(orderLimits.min_upvotes_per_minute,
+        Math.min(reorderData.upvotesPerMinute || 1, orderLimits.max_upvotes_per_minute));
+      
+      setUpvotes(safeUpvotes);
+      setUpvotesPerMinute(safeUpvotesPerMinute);
       setIsReorder(true);
       
       // Clear the state to prevent re-filling on page refresh
       window.history.replaceState({}, document.title);
     }
-  }, [location.state]);
+  }, [location.state, loadingLimits, orderLimits]);
   
   // Calculate cost based on upvotes (0.008 credits per upvote)
   const cost = upvotes * 0.008;
@@ -133,8 +184,8 @@ const NewOrder = () => {
                 onClick={() => {
                   setOrderSuccess(false);
                   setRedditUrl('');
-                  setUpvotes(20);
-                  setUpvotesPerMinute(1);
+                  setUpvotes(Math.max(orderLimits.min_upvotes, Math.min(20, orderLimits.max_upvotes)));
+                  setUpvotesPerMinute(Math.max(orderLimits.min_upvotes_per_minute, Math.min(1, orderLimits.max_upvotes_per_minute)));
                 }}
               >
                 Create New Order
@@ -210,18 +261,27 @@ const NewOrder = () => {
                     </label>
                     <span>{upvotes} upvotes</span>
                   </div>
-                  <Slider
-                    id="upvotes"
-                    min={2}
-                    max={600}
-                    step={5}
-                    value={[upvotes]}
-                    onValueChange={(value) => setUpvotes(value[0])}
-                  />
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span>2</span>
-                    <span>600</span>
-                  </div>
+                  {loadingLimits ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="ml-2 text-sm text-gray-500">Loading limits...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Slider
+                        id="upvotes"
+                        min={orderLimits.min_upvotes}
+                        max={orderLimits.max_upvotes}
+                        step={1}
+                        value={[upvotes]}
+                        onValueChange={(value) => setUpvotes(value[0])}
+                      />
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>{orderLimits.min_upvotes}</span>
+                        <span>{orderLimits.max_upvotes}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
@@ -231,21 +291,30 @@ const NewOrder = () => {
                     </label>
                     <span>{upvotesPerMinute} per minute</span>
                   </div>
-                  <Slider
-                    id="upvotes-per-minute"
-                    min={1}
-                    max={10}
-                    step={1}
-                    value={[upvotesPerMinute]}
-                    onValueChange={(value) => setUpvotesPerMinute(value[0])}
-                  />
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span>1</span>
-                    <span>10</span>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Controls the delivery speed of upvotes (slower rates appear more natural)
-                  </p>
+                  {loadingLimits ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="ml-2 text-sm text-gray-500">Loading limits...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Slider
+                        id="upvotes-per-minute"
+                        min={orderLimits.min_upvotes_per_minute}
+                        max={orderLimits.max_upvotes_per_minute}
+                        step={1}
+                        value={[upvotesPerMinute]}
+                        onValueChange={(value) => setUpvotesPerMinute(value[0])}
+                      />
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>{orderLimits.min_upvotes_per_minute}</span>
+                        <span>{orderLimits.max_upvotes_per_minute}</span>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Controls the delivery speed of upvotes (slower rates appear more natural)
+                      </p>
+                    </>
+                  )}
                 </div>
               </form>
             </CardContent>
@@ -254,7 +323,7 @@ const NewOrder = () => {
                 <p className="text-sm text-gray-500">Cost:</p>
                 <p className="text-xl font-bold">{cost.toFixed(2)} credits</p>
               </div>
-              <Button onClick={handleSubmit} disabled={isSubmitting || !hasEnoughCredits}>
+              <Button onClick={handleSubmit} disabled={isSubmitting || !hasEnoughCredits || loadingLimits}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

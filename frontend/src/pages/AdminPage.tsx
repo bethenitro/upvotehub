@@ -99,6 +99,13 @@ interface ProxyData {
   total_count: number;
 }
 
+interface SystemSettings {
+  min_upvotes: number;
+  max_upvotes: number;
+  min_upvotes_per_minute: number;
+  max_upvotes_per_minute: number;
+}
+
 const AdminPage: React.FC = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -120,6 +127,16 @@ const AdminPage: React.FC = () => {
     rotation_url: ''
   });
 
+  // System settings state
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>({
+    min_upvotes: 1,
+    max_upvotes: 1000,
+    min_upvotes_per_minute: 1,
+    max_upvotes_per_minute: 60
+  });
+  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+
   // Check if user is admin (this should match the backend admin email check)
   const isAdmin = user?.email === import.meta.env.VITE_ADMIN_EMAIL || user?.email === 'admin@upvotezone.com';
 
@@ -128,6 +145,7 @@ const AdminPage: React.FC = () => {
       fetchAdminData();
       fetchBotConfig();
       fetchProxies();
+      fetchSystemSettings();
     }
   }, [isAdmin]);
 
@@ -178,6 +196,48 @@ const AdminPage: React.FC = () => {
       });
     } finally {
       setLoadingProxies(false);
+    }
+  };
+
+  const fetchSystemSettings = async () => {
+    try {
+      setLoadingSettings(true);
+      const settings = await api.admin.getSystemSettings();
+      setSystemSettings({
+        min_upvotes: settings.min_upvotes,
+        max_upvotes: settings.max_upvotes,
+        min_upvotes_per_minute: settings.min_upvotes_per_minute,
+        max_upvotes_per_minute: settings.max_upvotes_per_minute
+      });
+    } catch (error) {
+      console.error('Failed to fetch system settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load system settings",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  const updateSystemSettings = async () => {
+    try {
+      setSavingSettings(true);
+      await api.admin.updateSystemSettings(systemSettings);
+      toast({
+        title: "Success",
+        description: "System settings updated successfully",
+      });
+    } catch (error) {
+      console.error('Failed to update system settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update system settings",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -326,12 +386,13 @@ const AdminPage: React.FC = () => {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="activity">Recent Activity</TabsTrigger>
           <TabsTrigger value="bot-setup">Bot Setup</TabsTrigger>
           <TabsTrigger value="proxies">Proxies</TabsTrigger>
+          <TabsTrigger value="settings">System Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -753,6 +814,193 @@ const AdminPage: React.FC = () => {
                   Add Proxy
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Settings className="h-5 w-5 mr-2" />
+                System Settings
+              </CardTitle>
+              <CardDescription>
+                Configure order limits and validation rules for the application.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingSettings ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-upvote-primary" />
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Upvotes Limits */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-lg">Upvotes per Order Limits</h4>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="min-upvotes">Minimum Upvotes</Label>
+                        <Input
+                          id="min-upvotes"
+                          type="number"
+                          min="1"
+                          value={systemSettings.min_upvotes}
+                          onChange={(e) => setSystemSettings({ 
+                            ...systemSettings, 
+                            min_upvotes: Math.max(1, parseInt(e.target.value) || 1)
+                          })}
+                          placeholder="Minimum upvotes per order"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Minimum number of upvotes allowed per order
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="max-upvotes">Maximum Upvotes</Label>
+                        <Input
+                          id="max-upvotes"
+                          type="number"
+                          min="1"
+                          value={systemSettings.max_upvotes}
+                          onChange={(e) => setSystemSettings({ 
+                            ...systemSettings, 
+                            max_upvotes: Math.max(1, parseInt(e.target.value) || 1000)
+                          })}
+                          placeholder="Maximum upvotes per order"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Maximum number of upvotes allowed per order
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Upvotes per Minute Limits */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-lg">Upvotes per Minute Limits</h4>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="min-upvotes-per-minute">Minimum Upvotes per Minute</Label>
+                        <Input
+                          id="min-upvotes-per-minute"
+                          type="number"
+                          min="1"
+                          value={systemSettings.min_upvotes_per_minute}
+                          onChange={(e) => setSystemSettings({ 
+                            ...systemSettings, 
+                            min_upvotes_per_minute: Math.max(1, parseInt(e.target.value) || 1)
+                          })}
+                          placeholder="Minimum upvotes per minute"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Minimum rate of upvotes per minute
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="max-upvotes-per-minute">Maximum Upvotes per Minute</Label>
+                        <Input
+                          id="max-upvotes-per-minute"
+                          type="number"
+                          min="1"
+                          value={systemSettings.max_upvotes_per_minute}
+                          onChange={(e) => setSystemSettings({ 
+                            ...systemSettings, 
+                            max_upvotes_per_minute: Math.max(1, parseInt(e.target.value) || 60)
+                          })}
+                          placeholder="Maximum upvotes per minute"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Maximum rate of upvotes per minute
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Current Values Display */}
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h5 className="font-medium mb-2">Current Settings Preview</h5>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Min Upvotes:</span>
+                        <span className="ml-2 font-semibold">{systemSettings.min_upvotes}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Max Upvotes:</span>
+                        <span className="ml-2 font-semibold">{systemSettings.max_upvotes}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Min Rate:</span>
+                        <span className="ml-2 font-semibold">{systemSettings.min_upvotes_per_minute}/min</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Max Rate:</span>
+                        <span className="ml-2 font-semibold">{systemSettings.max_upvotes_per_minute}/min</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Validation Messages */}
+                  {systemSettings.min_upvotes > systemSettings.max_upvotes && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-red-800 text-sm">
+                        <AlertTriangle className="h-4 w-4 inline mr-2" />
+                        Error: Minimum upvotes cannot be greater than maximum upvotes
+                      </p>
+                    </div>
+                  )}
+
+                  {systemSettings.min_upvotes_per_minute > systemSettings.max_upvotes_per_minute && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-red-800 text-sm">
+                        <AlertTriangle className="h-4 w-4 inline mr-2" />
+                        Error: Minimum upvotes per minute cannot be greater than maximum upvotes per minute
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-3 pt-4 border-t">
+                    <Button 
+                      onClick={fetchSystemSettings} 
+                      variant="outline"
+                      disabled={loadingSettings}
+                    >
+                      {loadingSettings ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        "Reset to Current"
+                      )}
+                    </Button>
+                    <Button 
+                      onClick={updateSystemSettings}
+                      disabled={
+                        savingSettings || 
+                        systemSettings.min_upvotes > systemSettings.max_upvotes ||
+                        systemSettings.min_upvotes_per_minute > systemSettings.max_upvotes_per_minute
+                      }
+                    >
+                      {savingSettings ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Save Settings
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

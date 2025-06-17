@@ -17,6 +17,7 @@ import uuid
 import logging
 import os
 import sys
+import httpx
 from pathlib import Path
 
 # Set up logging
@@ -29,6 +30,54 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# Configuration
+MAIN_BACKEND_URL = os.getenv("MAIN_BACKEND_URL", "http://localhost:8000")
+
+# Global variables for caching system limits
+_cached_limits = None
+_limits_cache_time = None
+_limits_cache_duration = 300  # 5 minutes
+
+async def get_system_limits() -> Dict[str, int]:
+    """Fetch current system limits from the main backend with caching"""
+    global _cached_limits, _limits_cache_time
+    
+    # Check if we have cached limits that are still valid
+    if (_cached_limits is not None and 
+        _limits_cache_time is not None and 
+        (datetime.now().timestamp() - _limits_cache_time) < _limits_cache_duration):
+        return _cached_limits
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            # Try to get limits from the admin service
+            response = await client.get(f"{MAIN_BACKEND_URL}/api/admin/settings")
+            if response.status_code == 200:
+                settings = response.json()
+                limits = {
+                    "min_upvotes": settings.get("min_upvotes", 1),
+                    "max_upvotes": settings.get("max_upvotes", 1000),
+                    "min_upvotes_per_minute": settings.get("min_upvotes_per_minute", 1),
+                    "max_upvotes_per_minute": settings.get("max_upvotes_per_minute", 60),
+                }
+                # Cache the limits
+                _cached_limits = limits
+                _limits_cache_time = datetime.now().timestamp()
+                logger.info(f"Fetched system limits: {limits}")
+                return limits
+    except Exception as e:
+        logger.warning(f"Failed to fetch system limits from main backend: {e}")
+    
+    # Return default limits if fetching fails
+    default_limits = {
+        "min_upvotes": 1,
+        "max_upvotes": 1000,
+        "min_upvotes_per_minute": 1,
+        "max_upvotes_per_minute": 60,
+    }
+    logger.info(f"Using default system limits: {default_limits}")
+    return default_limits
 
 # Import the bot processor
 sys.path.append('/Users/nikanyad/Documents/UpVote/upvote-integration/upvotehub/backend')
@@ -61,18 +110,20 @@ class OrderCreate(BaseModel):
     
     @validator('upvotes')
     def validate_upvotes(cls, v):
+        # Basic validation - detailed validation will be done in the endpoint
         if v <= 0:
             raise ValueError('Upvotes must be greater than 0')
-        if v > 1000:
-            raise ValueError('Upvotes cannot exceed 1000')
+        if v > 10000:  # Set a very high max to prevent abuse, real limit checked later
+            raise ValueError('Upvotes value is too high')
         return v
     
     @validator('upvotes_per_minute')
     def validate_upvotes_per_minute(cls, v):
+        # Basic validation - detailed validation will be done in the endpoint
         if v <= 0:
             raise ValueError('Upvotes per minute must be greater than 0')
-        if v > 60:
-            raise ValueError('Upvotes per minute cannot exceed 60')
+        if v > 1000:  # Set a very high max to prevent abuse, real limit checked later
+            raise ValueError('Upvotes per minute value is too high')
         return v
     
     @validator('reddit_url')
@@ -80,6 +131,20 @@ class OrderCreate(BaseModel):
         if not v.startswith(('https://reddit.com/', 'https://www.reddit.com/')):
             raise ValueError('Invalid Reddit URL')
         return v
+
+async def validate_order_against_limits(order: OrderCreate) -> None:
+    """Validate order against current system limits"""
+    limits = await get_system_limits()
+    
+    if order.upvotes < limits["min_upvotes"]:
+        raise ValueError(f'Upvotes must be at least {limits["min_upvotes"]}')
+    if order.upvotes > limits["max_upvotes"]:
+        raise ValueError(f'Upvotes cannot exceed {limits["max_upvotes"]}')
+    
+    if order.upvotes_per_minute < limits["min_upvotes_per_minute"]:
+        raise ValueError(f'Upvotes per minute must be at least {limits["min_upvotes_per_minute"]}')
+    if order.upvotes_per_minute > limits["max_upvotes_per_minute"]:
+        raise ValueError(f'Upvotes per minute cannot exceed {limits["max_upvotes_per_minute"]}')
 
 class OrderResponse(BaseModel):
     success: bool
@@ -125,6 +190,15 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
     """Create and start processing a new upvote order"""
     try:
         logger.info(f"Received new order: {order.order_id} for URL: {order.reddit_url}")
+        
+        # Validate against dynamic system limits
+        try:
+            await validate_order_against_limits(order)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
         
         # Check if order already exists
         if order.order_id in bot_processor.sessions:

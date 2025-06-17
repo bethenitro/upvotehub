@@ -325,6 +325,110 @@ class AdminService:
             raise
 
     @staticmethod
+    async def get_system_settings() -> Dict[str, Any]:
+        """Get current system settings for order limits"""
+        try:
+            db = Database.get_db()
+            
+            settings = await db[Collections.SYSTEM_SETTINGS].find_one(
+                {"active": True},
+                sort=[("updated_at", -1)]
+            )
+            
+            if settings:
+                settings["id"] = str(settings["_id"])
+                settings.pop("_id", None)
+                return settings
+            
+            # Return default settings if none exist
+            default_settings = {
+                "min_upvotes": 1,
+                "max_upvotes": 1000,
+                "min_upvotes_per_minute": 1,
+                "max_upvotes_per_minute": 60,
+                "active": True,
+                "updated_at": datetime.utcnow()
+            }
+            
+            logger.info("returning_default_system_settings")
+            return default_settings
+            
+        except Exception as e:
+            logger.error("get_system_settings_failed", error=str(e))
+            # Return defaults on error
+            return {
+                "min_upvotes": 1,
+                "max_upvotes": 1000,
+                "min_upvotes_per_minute": 1,
+                "max_upvotes_per_minute": 60,
+                "active": True,
+                "updated_at": datetime.utcnow()
+            }
+
+    @staticmethod
+    async def update_system_settings(settings_data: Dict[str, Any]) -> bool:
+        """Update system settings for order limits"""
+        try:
+            db = Database.get_db()
+            
+            # Validate settings
+            min_upvotes = settings_data.get("min_upvotes", 1)
+            max_upvotes = settings_data.get("max_upvotes", 1000)
+            min_upvotes_per_minute = settings_data.get("min_upvotes_per_minute", 1)
+            max_upvotes_per_minute = settings_data.get("max_upvotes_per_minute", 60)
+            
+            # Validation checks
+            if min_upvotes < 1 or max_upvotes < 1:
+                logger.error("invalid_upvotes_settings", min_upvotes=min_upvotes, max_upvotes=max_upvotes)
+                return False
+                
+            if min_upvotes > max_upvotes:
+                logger.error("min_upvotes_greater_than_max", min_upvotes=min_upvotes, max_upvotes=max_upvotes)
+                return False
+                
+            if min_upvotes_per_minute < 1 or max_upvotes_per_minute < 1:
+                logger.error("invalid_upvotes_per_minute_settings", 
+                    min_upvotes_per_minute=min_upvotes_per_minute, 
+                    max_upvotes_per_minute=max_upvotes_per_minute)
+                return False
+                
+            if min_upvotes_per_minute > max_upvotes_per_minute:
+                logger.error("min_upvotes_per_minute_greater_than_max", 
+                    min_upvotes_per_minute=min_upvotes_per_minute, 
+                    max_upvotes_per_minute=max_upvotes_per_minute)
+                return False
+            
+            settings_document = {
+                "min_upvotes": min_upvotes,
+                "max_upvotes": max_upvotes,
+                "min_upvotes_per_minute": min_upvotes_per_minute,
+                "max_upvotes_per_minute": max_upvotes_per_minute,
+                "updated_at": datetime.utcnow(),
+                "active": True
+            }
+            
+            # Deactivate previous settings
+            await db[Collections.SYSTEM_SETTINGS].update_many(
+                {"active": True},
+                {"$set": {"active": False}}
+            )
+            
+            # Insert new settings
+            result = await db[Collections.SYSTEM_SETTINGS].insert_one(settings_document)
+            
+            logger.info("system_settings_updated", 
+                settings_id=str(result.inserted_id),
+                min_upvotes=min_upvotes,
+                max_upvotes=max_upvotes,
+                min_upvotes_per_minute=min_upvotes_per_minute,
+                max_upvotes_per_minute=max_upvotes_per_minute)
+            return True
+            
+        except Exception as e:
+            logger.error("update_system_settings_failed", error=str(e))
+            raise
+
+    @staticmethod
     async def get_proxies() -> Dict[str, Any]:
         """Get current proxy configurations from file"""
         try:
