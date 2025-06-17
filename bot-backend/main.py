@@ -51,8 +51,8 @@ async def get_system_limits() -> Dict[str, int]:
     
     try:
         async with httpx.AsyncClient() as client:
-            # Try to get limits from the admin service
-            response = await client.get(f"{MAIN_BACKEND_URL}/api/admin/settings")
+            # Try to get limits from the order service (public endpoint)
+            response = await client.get(f"{MAIN_BACKEND_URL}/api/orders/internal/limits")
             if response.status_code == 200:
                 settings = response.json()
                 limits = {
@@ -66,6 +66,8 @@ async def get_system_limits() -> Dict[str, int]:
                 _limits_cache_time = datetime.now().timestamp()
                 logger.info(f"Fetched system limits: {limits}")
                 return limits
+            else:
+                logger.warning(f"Failed to fetch system limits: HTTP {response.status_code}")
     except Exception as e:
         logger.warning(f"Failed to fetch system limits from main backend: {e}")
     

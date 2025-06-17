@@ -11,3 +11,4 @@ __pycache__/
 .env.test
 .env.production
 node_modules/
+bot-backend/order_history.json

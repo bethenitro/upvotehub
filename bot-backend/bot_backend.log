@@ -83,3 +83,30 @@
 2025-06-17 20:13:19,931 - INFO - script - Completed restart recovery process
 2025-06-17 20:13:19,938 - INFO - main - Bot backend starting up...
 2025-06-17 20:13:19,938 - INFO - main - Bot backend startup completed
+2025-06-17 20:54:27,272 - INFO - main - Received new order: 685188abaee359383849d579 for URL: https://www.reddit.com/r/worldnews/comments/1la27h6/israel_launches_preemptive_strike_against_iran/
+2025-06-17 20:54:27,300 - INFO - httpx - HTTP Request: GET http://localhost:8000/api/admin/settings "HTTP/1.1 403 Forbidden"
+2025-06-17 20:54:27,301 - INFO - main - Using default system limits: {'min_upvotes': 1, 'max_upvotes': 1000, 'min_upvotes_per_minute': 1, 'max_upvotes_per_minute': 60}
+2025-06-17 20:54:27,302 - INFO - order_history - Added order 685188abaee359383849d579 to history
+2025-06-17 21:00:10,834 - INFO - main - Received new order: 68518a02aee359383849d599 for URL: https://www.reddit.com/r/worldnews/comments/1la27h6/israel_launches_preemptive_strike_against_iran/
+2025-06-17 21:00:10,846 - INFO - httpx - HTTP Request: GET http://localhost:8000/api/admin/settings "HTTP/1.1 403 Forbidden"
+2025-06-17 21:00:10,846 - INFO - main - Using default system limits: {'min_upvotes': 1, 'max_upvotes': 1000, 'min_upvotes_per_minute': 1, 'max_upvotes_per_minute': 60}
+2025-06-17 21:00:10,847 - INFO - order_history - Added order 68518a02aee359383849d599 to history
+2025-06-17 21:02:28,324 - INFO - order_history - Marked order 685188abaee359383849d579 as failed due to restart
+2025-06-17 21:02:28,324 - WARNING - script - Marked order 685188abaee359383849d579 as failed due to restart (was running)
+2025-06-17 21:02:28,325 - INFO - order_history - Marked order 68518a02aee359383849d599 as failed due to restart
+2025-06-17 21:02:28,325 - WARNING - script - Marked order 68518a02aee359383849d599 as failed due to restart (was running)
+2025-06-17 21:02:28,325 - INFO - script - Completed restart recovery process
+2025-06-17 21:02:28,330 - INFO - main - Bot backend starting up...
+2025-06-17 21:02:28,330 - INFO - main - Bot backend startup completed
+2025-06-17 21:10:15,932 - INFO - script - Completed restart recovery process
+2025-06-17 21:10:15,937 - INFO - main - Bot backend starting up...
+2025-06-17 21:10:15,937 - INFO - main - Bot backend startup completed
+2025-06-17 21:13:29,193 - INFO - main - Received new order: 68518d21d88997112e4f2bf6 for URL: https://www.reddit.com/r/worldnews/comments/1la27h6/israel_launches_preemptive_strike_against_iran/
+2025-06-17 21:13:29,239 - INFO - httpx - HTTP Request: GET http://localhost:8000/api/orders/internal/limits "HTTP/1.1 200 OK"
+2025-06-17 21:13:29,240 - INFO - main - Fetched system limits: {'min_upvotes': 2, 'max_upvotes': 600, 'min_upvotes_per_minute': 1, 'max_upvotes_per_minute': 10}
+2025-06-17 21:13:29,241 - INFO - order_history - Added order 68518d21d88997112e4f2bf6 to history
+2025-06-17 21:18:30,854 - INFO - order_history - Marked order 68518d21d88997112e4f2bf6 as failed due to restart
+2025-06-17 21:18:30,854 - WARNING - script - Marked order 68518d21d88997112e4f2bf6 as failed due to restart (was running)
+2025-06-17 21:18:30,854 - INFO - script - Completed restart recovery process
+2025-06-17 21:18:30,859 - INFO - main - Bot backend starting up...
+2025-06-17 21:18:30,859 - INFO - main - Bot backend startup completed

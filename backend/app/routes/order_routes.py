@@ -116,3 +116,24 @@ async def get_order_status(
             status_code=500,
             detail=str(e)
         )
+
+@router.get("/internal/limits")
+async def get_internal_limits():
+    """Get current system limits for internal service communication (no auth required)"""
+    try:
+        settings = await AdminService.get_system_settings()
+        return {
+            "min_upvotes": settings.get("min_upvotes", 1),
+            "max_upvotes": settings.get("max_upvotes", 1000),
+            "min_upvotes_per_minute": settings.get("min_upvotes_per_minute", 1),
+            "max_upvotes_per_minute": settings.get("max_upvotes_per_minute", 60)
+        }
+    except Exception as e:
+        logger.error("get_internal_limits_failed", error=str(e))
+        # Return default limits on error
+        return {
+            "min_upvotes": 1,
+            "max_upvotes": 600,
+            "min_upvotes_per_minute": 1,
+            "max_upvotes_per_minute": 60
+        }
