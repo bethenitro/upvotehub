@@ -137,7 +137,7 @@ const CryptoTopUpAccount = () => {
                 Add Credits with Crypto
               </CardTitle>
               <CardDescription>
-                Purchase credits using Bitcoin, Ethereum, and other cryptocurrencies via BTCPay Server
+                Purchase credits using Bitcoin, Ethereum, and other cryptocurrencies via Cryptomus
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -148,7 +148,7 @@ const CryptoTopUpAccount = () => {
                   </div>
                   <h3 className="text-xl font-bold mb-2">Complete Your Crypto Payment</h3>
                   <p className="text-gray-500 mb-4 text-center">
-                    Click the button below to open BTCPay Server and complete your ${amount} payment.
+                    Click the button below to open Cryptomus and complete your ${amount} payment.
                   </p>
                   <div className="flex gap-4">
                     <Button 
@@ -246,7 +246,7 @@ const CryptoTopUpAccount = () => {
                     <ol className="text-sm text-gray-600 space-y-1">
                       <li>1. Select your credit package amount</li>
                       <li>2. Click "Pay with Crypto" to create payment</li>
-                      <li>3. Complete payment in BTCPay Server</li>
+                      <li>3. Complete payment in Cryptomus</li>
                       <li>4. Credits are automatically added to your account</li>
                     </ol>
                   </div>

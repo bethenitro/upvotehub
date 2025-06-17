@@ -4,7 +4,7 @@ from typing import List
 from ..models.user import User
 from ..models.payment import Payment, PaymentCreate, PaymentMethod
 from ..services.payment_service import PaymentService
-from ..services.btcpay_service import btcpay_service
+from ..services.cryptomus_service import get_cryptomus_service
 from ..utils.exceptions import (
     PaymentProcessingError,
     InvalidPaymentMethodError,

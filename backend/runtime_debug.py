@@ -2,7 +2,7 @@
 import os
 from dotenv import load_dotenv
 
-print("=== Environment Debug When BTCPay Service Initializes ===")
+print("=== Environment Debug When Cryptomus Service Initializes ===")
 print(f"Current working directory: {os.getcwd()}")
 print(f"Python path: {os.path.dirname(os.path.abspath(__file__))}")
 
@@ -26,9 +26,12 @@ print("\n=== Loading .env from specific path ===")
 env_path = "/Users/nikanyad/Documents/UpVote/upvote-integration/upvotehub/backend/.env"
 load_dotenv(env_path)
 
-btc_vars = ["BTCPAY_SERVER_URL", "BTCPAY_API_KEY", "BTCPAY_STORE_ID", "BTCPAY_WEBHOOK_SECRET"]
-for var in btc_vars:
+cryptomus_vars = ["CRYPTOMUS_API_KEY", "CRYPTOMUS_USER_ID"]
+for var in cryptomus_vars:
     value = os.getenv(var)
     print(f"{var}: {'SET' if value else 'NOT SET'} (length: {len(value) if value else 0})")
     if value:
-        print(f"  Value: {value[:20]}...")
+        if var.endswith("KEY"):
+            print(f"  Value: {'*' * min(len(value), 8)}... (MASKED)")
+        else:
+            print(f"  Value: {value[:20]}...")

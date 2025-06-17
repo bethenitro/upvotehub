@@ -4,7 +4,7 @@ from ..models.payment import Payment, PaymentCreate, PaymentMethod
 from ..config.database import Database, Collections
 from ..utils.logger import logger
 from ..utils.exceptions import PaymentProcessingError, InvalidPaymentMethodError
-from .btcpay_service import get_btcpay_service
+from .cryptomus_service import get_cryptomus_service
 from bson import ObjectId
 
 class PaymentService:
@@ -149,21 +149,22 @@ class PaymentService:
 
     @staticmethod
     async def create_crypto_payment(user_id: str, payment: PaymentCreate) -> Payment:
-        """Create a cryptocurrency payment using BTCPay Server"""
+        """Create a cryptocurrency payment using Cryptomus Personal API"""
         try:
             db = Database.get_db()
             
             # Generate order ID for tracking
             order_id = str(ObjectId())
             
-            # Create BTCPay invoice
-            btcpay_service = get_btcpay_service()
-            invoice = await btcpay_service.create_invoice(
-                amount=payment.amount,
+            # Create Cryptomus payment
+            cryptomus_service = get_cryptomus_service()
+            payment_result = await cryptomus_service.create_payment(
+                amount=str(payment.amount),
                 currency="USD",  # Base currency
                 order_id=order_id,
-                buyer_email=payment.payment_details.get("buyer_email"),
-                description=f"Credit Purchase - {payment.amount} credits"
+                url_return=f"{cryptomus_service._settings.FRONTEND_URL}/payment/return",
+                url_success=f"{cryptomus_service._settings.FRONTEND_URL}/payment/success",
+                url_callback=f"{cryptomus_service._settings.FRONTEND_URL}/api/payments/cryptomus/webhook"
             )
             
             # Create payment record
@@ -175,9 +176,10 @@ class PaymentService:
                 "order_id": payment.order_id,
                 "created_at": datetime.utcnow(),
                 "payment_details": {
-                    "btcpay_invoice_id": invoice["id"],
-                    "btcpay_checkout_link": invoice["checkoutLink"],
-                    "invoice_data": invoice
+                    "cryptomus_payment_uuid": payment_result["uuid"],
+                    "cryptomus_payment_url": payment_result["url"],
+                    "cryptomus_order_id": order_id,
+                    "payment_data": payment_result
                 }
             }
             
@@ -187,7 +189,7 @@ class PaymentService:
             logger.info("crypto_payment_created",
                 payment_id=payment_dict["id"],
                 user_id=user_id,
-                invoice_id=invoice["id"],
+                cryptomus_uuid=payment_result["uuid"],
                 amount=payment.amount
             )
             
@@ -234,60 +236,61 @@ class PaymentService:
             raise PaymentProcessingError("Only cryptocurrency payments are supported")
     
     @staticmethod
-    async def handle_btcpay_webhook(invoice_data: Dict[str, Any]) -> bool:
-        """Handle BTCPay Server webhook notifications"""
+    async def handle_cryptomus_webhook(webhook_data: Dict[str, Any]) -> bool:
+        """Handle Cryptomus webhook notifications"""
         try:
             db = Database.get_db()
             
-            invoice_id = invoice_data.get("invoiceId")
-            status = invoice_data.get("type")  # InvoiceReceivedPayment, InvoicePaymentSettled, etc.
+            payment_uuid = webhook_data.get("uuid")
+            status = webhook_data.get("status")
             
-            if not invoice_id:
-                logger.warning("btcpay_webhook_missing_invoice_id", data=invoice_data)
+            if not payment_uuid:
+                logger.warning("cryptomus_webhook_missing_uuid", data=webhook_data)
                 return False
             
-            # Find payment by BTCPay invoice ID
+            # Find payment by Cryptomus payment UUID
             payment = await db[Collections.PAYMENTS].find_one({
-                "payment_details.btcpay_invoice_id": invoice_id
+                "payment_details.cryptomus_payment_uuid": payment_uuid
             })
             
             if not payment:
-                logger.warning("btcpay_webhook_payment_not_found", invoice_id=invoice_id)
+                logger.warning("cryptomus_webhook_payment_not_found", payment_uuid=payment_uuid)
                 return False
             
-            # Update payment status based on webhook type
-            new_status = None
-            if status == "InvoicePaymentSettled":
-                new_status = "completed"
-                # Add credits to user account
-                await PaymentService._add_credits_to_user(payment["user_id"], payment["amount"])
-            elif status == "InvoiceExpired":
-                new_status = "failed"
-            elif status == "InvoiceInvalid":
-                new_status = "failed"
+            # Parse status using Cryptomus service
+            cryptomus_service = get_cryptomus_service()
+            new_status = cryptomus_service.parse_payment_status(status)
             
-            if new_status:
+            # Update payment status
+            if new_status and new_status != payment["status"]:
+                update_data = {
+                    "status": new_status,
+                    "payment_details.webhook_data": webhook_data
+                }
+                
+                if new_status == "completed":
+                    update_data["completed_at"] = datetime.utcnow()
+                    # Add credits to user account
+                    await PaymentService._add_credits_to_user(payment["user_id"], payment["amount"])
+                elif new_status in ["cancelled", "failed"]:
+                    update_data["cancelled_at"] = datetime.utcnow()
+                
                 await db[Collections.PAYMENTS].update_one(
                     {"_id": payment["_id"]},
-                    {
-                        "$set": {
-                            "status": new_status,
-                            "completed_at": datetime.utcnow() if new_status == "completed" else None,
-                            "payment_details.webhook_data": invoice_data
-                        }
-                    }
+                    {"$set": update_data}
                 )
                 
-                logger.info("btcpay_payment_status_updated",
+                logger.info("cryptomus_payment_status_updated",
                     payment_id=str(payment["_id"]),
-                    invoice_id=invoice_id,
-                    status=new_status
+                    payment_uuid=payment_uuid,
+                    old_status=payment["status"],
+                    new_status=new_status
                 )
             
             return True
             
         except Exception as e:
-            logger.error("btcpay_webhook_processing_failed", error=str(e), data=invoice_data)
+            logger.error("cryptomus_webhook_processing_failed", error=str(e), data=webhook_data)
             return False
     
     @staticmethod
@@ -302,7 +305,7 @@ class PaymentService:
     
     @staticmethod
     async def get_crypto_payment_status(payment_id: str) -> Dict[str, Any]:
-        """Get current status of a crypto payment from BTCPay"""
+        """Get current status of a crypto payment from Cryptomus"""
         try:
             db = Database.get_db()
             
@@ -313,20 +316,17 @@ class PaymentService:
             if payment["method"] != "crypto":
                 raise PaymentProcessingError("Not a crypto payment")
             
-            invoice_id = payment["payment_details"].get("btcpay_invoice_id")
-            if not invoice_id:
-                raise PaymentProcessingError("BTCPay invoice ID not found")
+            payment_uuid = payment["payment_details"].get("cryptomus_payment_uuid")
+            if not payment_uuid:
+                raise PaymentProcessingError("Cryptomus payment UUID not found")
             
-            # Get latest invoice data from BTCPay
-            btcpay_service = get_btcpay_service()
-            invoice_data = await btcpay_service.get_invoice(invoice_id)
+            # Get latest payment data from Cryptomus
+            cryptomus_service = get_cryptomus_service()
+            payment_data = await cryptomus_service.get_payment_info(payment_uuid)
             
             # Parse status
-            btcpay_status = invoice_data.get("status")
-            parsed_status = btcpay_service.parse_invoice_status(
-                btcpay_status, 
-                invoice_data.get("exceptionStatus")
-            )
+            cryptomus_status = payment_data.get("status")
+            parsed_status = cryptomus_service.parse_payment_status(cryptomus_status)
             
             # Update local payment if status changed
             if parsed_status != payment["status"]:
@@ -345,9 +345,9 @@ class PaymentService:
                 "payment_id": payment_id,
                 "status": parsed_status,
                 "amount": payment["amount"],
-                "btcpay_status": btcpay_status,
-                "checkout_link": payment["payment_details"].get("btcpay_checkout_link"),
-                "invoice_data": invoice_data
+                "cryptomus_status": cryptomus_status,
+                "payment_url": payment["payment_details"].get("cryptomus_payment_url"),
+                "payment_data": payment_data
             }
             
         except Exception as e:

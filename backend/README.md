@@ -54,12 +54,19 @@ Once the server is running, you can access:
 - `GET /api/payments` - Get user's payment history
 - `POST /api/payments` - Create new payment
 - `POST /api/payments/methods` - Add new payment method
+- `POST /api/payments/cryptomus/webhook` - Handle Cryptomus webhook notifications
+- `GET /api/payments/crypto/supported-methods` - Get supported cryptocurrencies
 
 ## Features
 
 - **Full Authentication**: JWT-based authentication system
 - **Real Database Integration**: MongoDB integration for user, order, and payment data
+- **Cryptocurrency Payments**: Cryptomus Personal API integration for crypto payments
 - **Rate Limiting**: Request rate limiting middleware
 - **Error Handling**: Comprehensive error handling and logging
 - **Input Validation**: Proper input validation for all endpoints
-- **Background Tasks**: Task management for order processing 
+- **Background Tasks**: Task management for order processing
+
+## Crypto Payment Setup
+
+This application uses Cryptomus Personal API for cryptocurrency payments. See `CRYPTOMUS_SETUP.md` for detailed setup instructions. 

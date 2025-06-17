@@ -43,11 +43,9 @@ class Settings(BaseSettings):
     # Order Processing
     ORDER_SCRIPT_PATH: str = "script.py"
     
-    # BTCPay Server Configuration
-    BTCPAY_SERVER_URL: str = os.getenv("BTCPAY_SERVER_URL", "")
-    BTCPAY_API_KEY: str = os.getenv("BTCPAY_API_KEY", "")
-    BTCPAY_STORE_ID: str = os.getenv("BTCPAY_STORE_ID", "")
-    BTCPAY_WEBHOOK_SECRET: str = os.getenv("BTCPAY_WEBHOOK_SECRET", "")
+    # Cryptomus Personal API Configuration (Replaces BTCPay)
+    CRYPTOMUS_API_KEY: str = os.getenv("CRYPTOMUS_API_KEY", "")
+    CRYPTOMUS_USER_ID: str = os.getenv("CRYPTOMUS_USER_ID", "")
     
     # Proxy Configuration
     PROXY_CONFIG_FILE: str = os.getenv("PROXY_CONFIG_FILE", "/Users/nikanyad/Documents/UpVote/Upvote-RotatingProxies/mobile_proxies.json")

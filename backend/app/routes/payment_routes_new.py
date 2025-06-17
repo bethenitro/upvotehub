@@ -4,7 +4,7 @@ from typing import List
 from ..models.user import User
 from ..models.payment import Payment, PaymentCreate, PaymentMethod
 from ..services.payment_service import PaymentService
-from ..services.btcpay_service import btcpay_service
+from ..services.cryptomus_service import get_cryptomus_service
 from ..utils.exceptions import (
     PaymentProcessingError,
     InvalidPaymentMethodError,
@@ -59,30 +59,32 @@ async def get_payment_status(
     except Exception as e:
         raise PaymentProcessingError(str(e))
 
-@router.post("/btcpay/webhook")
-async def btcpay_webhook(request: Request):
-    """Handle BTCPay Server webhooks"""
+@router.post("/cryptomus/webhook")
+async def cryptomus_webhook(request: Request):
+    """Handle Cryptomus webhook notifications"""
     try:
         # Get raw body for signature verification
         body = await request.body()
+        body_str = body.decode('utf-8')
         
         # Get signature from headers
-        signature = request.headers.get("BTCPay-Sig")
+        signature = request.headers.get("sign")
         if not signature:
-            logger.warning("btcpay_webhook_missing_signature")
+            logger.warning("cryptomus_webhook_missing_signature")
             raise HTTPException(status_code=400, detail="Missing signature")
         
         # Verify webhook signature
-        if not btcpay_service.verify_webhook_signature(body, signature):
-            logger.warning("btcpay_webhook_invalid_signature")
+        cryptomus_service = get_cryptomus_service()
+        if not cryptomus_service.verify_webhook_signature(body_str, signature):
+            logger.warning("cryptomus_webhook_invalid_signature")
             raise HTTPException(status_code=400, detail="Invalid signature")
         
         # Parse webhook data
         import json
-        webhook_data = json.loads(body)
+        webhook_data = json.loads(body_str)
         
         # Process the webhook
-        success = await PaymentService.handle_btcpay_webhook(webhook_data)
+        success = await PaymentService.handle_cryptomus_webhook(webhook_data)
         
         if success:
             return JSONResponse(content={"status": "ok"})
@@ -90,17 +92,18 @@ async def btcpay_webhook(request: Request):
             raise HTTPException(status_code=400, detail="Webhook processing failed")
             
     except json.JSONDecodeError:
-        logger.error("btcpay_webhook_invalid_json")
+        logger.error("cryptomus_webhook_invalid_json")
         raise HTTPException(status_code=400, detail="Invalid JSON")
     except Exception as e:
-        logger.error("btcpay_webhook_error", error=str(e))
+        logger.error("cryptomus_webhook_error", error=str(e))
         raise HTTPException(status_code=500, detail="Webhook processing error")
 
 @router.get("/crypto/supported-methods")
 async def get_supported_crypto_methods():
     """Get supported cryptocurrency payment methods"""
     try:
-        methods = await btcpay_service.get_supported_payment_methods()
+        cryptomus_service = get_cryptomus_service()
+        methods = await cryptomus_service.get_payment_services()
         return {"supported_methods": methods}
     except Exception as e:
         logger.error("get_supported_crypto_methods_error", error=str(e))

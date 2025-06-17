@@ -330,7 +330,7 @@ export const api = {
         return {
           success: true,
           payment_id: payment.id,
-          checkout_link: payment.payment_details?.btcpay_checkout_link,
+          checkout_link: payment.payment_details?.cryptomus_payment_url,
           payment
         };
       } catch (error) {

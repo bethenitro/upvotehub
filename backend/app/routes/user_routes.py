@@ -110,7 +110,7 @@ async def topup_account(
         return {
             "success": True,
             "payment_id": payment.id,
-            "checkout_link": payment.payment_details.get("btcpay_checkout_link"),
+            "checkout_link": payment.payment_details.get("cryptomus_payment_url"),
             "amount": amount
         }
         
