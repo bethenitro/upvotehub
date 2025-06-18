@@ -86,7 +86,6 @@ const OrdersHistory = () => {
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [isRefreshingActiveOrders, setIsRefreshingActiveOrders] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -97,115 +96,14 @@ const OrdersHistory = () => {
     refetchOnWindowFocus: true, // Refetch when window gains focus
     staleTime: 0, // Consider data immediately stale so it refetches
     gcTime: 0, // Don't cache data to ensure fresh data each time
-    refetchInterval: 30000, // Refetch every 30 seconds for active orders
   });
 
   useEffect(() => {
     if (ordersData) {
       // Cast the data to Order[] to ensure type compatibility
       setOrders(ordersData as Order[]);
-      
-      // Only show success toast when data is refreshed after initial load
-      // and when not during auto-refresh
-      if (orders.length > 0 && !isRefreshingActiveOrders) {
-        toast({
-          title: "Orders Updated",
-          description: "Successfully refreshed order statuses.",
-        });
-      }
     }
-  }, [ordersData, toast, isRefreshingActiveOrders]); // Updated dependencies
-
-  // Refresh all order statuses after orders are loaded
-  useEffect(() => {
-    if (orders.length > 0 && !isRefreshingActiveOrders) {
-      refreshAllOrderStatuses();
-    }
-  }, [orders.length]); // Trigger when orders are first loaded
-
-  // Refetch data when component mounts to ensure fresh order statuses
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
-
-  // Function to refresh statuses for all orders from backend
-  const refreshAllOrderStatuses = async (showToast = false) => {
-    if (!orders || orders.length === 0) return;
-    
-    setIsRefreshingActiveOrders(true);
-    
-    // Refresh statuses for all orders in parallel
-    const statusPromises = orders.map(async (order) => {
-      try {
-        const statusData = await api.orders.getOrderStatus(order.id);
-        if (statusData) {
-          return {
-            orderId: order.id,
-            statusData: statusData
-          };
-        }
-      } catch (error) {
-        console.warn(`Failed to refresh status for order ${order.id}:`, error);
-      }
-      return null;
-    });
-    
-    const statusResults = await Promise.all(statusPromises);
-    
-    // Update orders with fresh status data
-    const updatedOrders = [...orders];
-    let hasUpdates = false;
-    
-    statusResults.forEach(result => {
-      if (result) {
-        const orderIndex = updatedOrders.findIndex(o => o.id === result.orderId);
-        if (orderIndex !== -1) {
-          const currentOrder = updatedOrders[orderIndex];
-          const newStatus = result.statusData.status;
-          
-          // Only update if status actually changed
-          if (currentOrder.status !== newStatus) {
-            updatedOrders[orderIndex] = {
-              ...currentOrder,
-              status: newStatus,
-              error_message: result.statusData.error_message || currentOrder.error_message
-            };
-            hasUpdates = true;
-          }
-        }
-      }
-    });
-    
-    if (hasUpdates) {
-      setOrders(updatedOrders);
-      if (showToast) {
-        toast({
-          title: "Orders Updated",
-          description: "Order statuses have been refreshed successfully.",
-        });
-      }
-    }
-    
-    setIsRefreshingActiveOrders(false);
-  };
-
-  // Auto-refresh for active orders every 10 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const activeOrders = orders.filter(order => 
-        ['pending', 'processing', 'in-progress'].includes(order.status?.toLowerCase())
-      );
-      
-      if (activeOrders.length > 0 && !isRefreshingActiveOrders) {
-        // Refetch all orders to get latest status from database
-        refetch();
-        // Also refresh individual statuses from processing system (no toast for auto-refresh)
-        refreshAllOrderStatuses(false);
-      }
-    }, 10000); // 10 seconds
-
-    return () => clearInterval(interval);
-  }, [orders, refetch, isRefreshingActiveOrders]);
+  }, [ordersData]);
 
   // Filter orders based on search query and status filter
   const filteredAndSortedOrders = useMemo(() => {
@@ -536,7 +434,6 @@ const OrdersHistory = () => {
           <h1 className="text-2xl font-semibold">Orders History</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {isLoading ? 'Loading orders...' : 
-             isRefreshingActiveOrders ? 'Synchronizing order statuses...' :
              `Last updated: ${new Date().toLocaleTimeString()}`}
           </p>
         </div>
@@ -679,16 +576,6 @@ const OrdersHistory = () => {
           </div>
         </CardHeader>
         <CardContent className="relative">
-          {/* Loading overlay for active order refresh */}
-          {isRefreshingActiveOrders && (
-            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-md">
-              <div className="text-center">
-                <div className="w-8 h-8 border-4 border-upvote-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                <p className="text-sm text-muted-foreground">Synchronizing order statuses...</p>
-              </div>
-            </div>
-          )}
-          
           {isLoading ? (
             <div className="py-10 text-center">
               <div className="w-10 h-10 border-4 border-upvote-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
@@ -724,14 +611,10 @@ const OrdersHistory = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredAndSortedOrders.map((order) => {
-                      const isActiveOrder = ['pending', 'processing', 'in-progress'].includes(order.status?.toLowerCase());
-                      const isRowDisabled = isRefreshingActiveOrders && isActiveOrder;
-                      
-                      return (
+                    filteredAndSortedOrders.map((order) => (
                         <TableRow 
                           key={order.id} 
-                          className={`table-row ${isRowDisabled ? 'opacity-60 pointer-events-none' : ''}`}
+                          className="table-row"
                         >
                         <TableCell className="font-mono text-xs">{order.id.slice(0, 8)}</TableCell>
                         <TableCell className="capitalize">{order.type}</TableCell>
@@ -774,8 +657,7 @@ const OrdersHistory = () => {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                      );
-                    })
+                      ))
                   )}
                 </TableBody>
               </Table>
