@@ -11,7 +11,7 @@ from app.utils.task_manager import task_manager
 from app.utils.monitoring import metrics_collector
 from app.utils.logger import logger
 from app.config.database import Database
-from app.routes import user_routes, order_routes, payment_routes, auth_routes, admin_routes, bot_routes
+from app.routes import user_routes, order_routes, payment_routes, auth_routes, admin_routes, bot_routes, referral_routes
 from app.config.settings import settings
 
 app = FastAPI(
@@ -80,6 +80,7 @@ app.include_router(order_routes.router, prefix="/api/orders", tags=["orders"])
 app.include_router(payment_routes.router, prefix="/api/payments", tags=["payments"])
 app.include_router(admin_routes.router, prefix="/api/admin", tags=["admin"])
 app.include_router(bot_routes.router, prefix="/api/bot", tags=["bot"])
+app.include_router(referral_routes.router, tags=["referral"])
 
 @app.on_event("startup")
 async def startup_event():

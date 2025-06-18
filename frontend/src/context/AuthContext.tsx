@@ -10,6 +10,9 @@ interface User {
   email: string;
   credits: number;
   profileImage: string;
+  my_referral_code?: string;
+  referral_earnings?: number;
+  total_referrals?: number;
 }
 
 interface AuthContextType {
@@ -17,7 +20,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (username: string, email: string, password: string) => Promise<boolean>;
+  signup: (username: string, email: string, password: string, referralCode?: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -69,12 +72,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (username: string, email: string, password: string): Promise<boolean> => {
+  const signup = async (username: string, email: string, password: string, referralCode?: string): Promise<boolean> => {
     try {
       setIsLoading(true);
       
       // Call the real API
-      const response = await api.auth.signup(username, email, password);
+      const response = await api.auth.signup(username, email, password, referralCode);
       
       setUser(response.user);
       toast({

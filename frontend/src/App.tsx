@@ -28,6 +28,7 @@ import PaymentHistory from "@/pages/PaymentHistory";
 import TopUpAccount from "@/pages/TopUpAccount";
 import Help from "@/pages/Help";
 import AdminPage from "@/pages/AdminPage";
+import ReferralPage from "@/pages/ReferralPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ const App = () => (
                 <Route path="orders/history" element={<OrdersHistory />} />
                 <Route path="payments/history" element={<PaymentHistory />} />
                 <Route path="account/topup" element={<TopUpAccount />} />
+                <Route path="referral" element={<ReferralPage />} />
                 <Route path="help" element={<Help />} />
               </Route>
 

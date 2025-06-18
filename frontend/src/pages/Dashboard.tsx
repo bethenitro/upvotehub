@@ -4,7 +4,8 @@ import { useApp } from '@/context/AppContext';
 import { api } from '@/services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Loader2, TrendingUp, CheckCircle, Clock } from 'lucide-react';
+import { Loader2, TrendingUp, CheckCircle, Clock, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface ActivityData {
   date: string;
@@ -22,7 +23,6 @@ const Dashboard = () => {
       try {
         setLoadingActivity(true);
         const statsData = await api.user.getUserStats();
-        console.log('Raw stats data:', statsData);
         
         // Transform the activity data to ensure proper formatting
         const transformedActivity = (statsData.activity || []).map((item: any) => ({
@@ -31,7 +31,6 @@ const Dashboard = () => {
           credits: item.credits || 0
         }));
         
-        console.log('Transformed activity data:', transformedActivity);
         setActivityData(transformedActivity);
       } catch (error) {
         console.error('Failed to fetch activity:', error);
@@ -59,7 +58,7 @@ const Dashboard = () => {
         <p className="text-gray-500">Welcome back, {user?.username}!</p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-500">Total Orders</CardTitle>
@@ -92,6 +91,21 @@ const Dashboard = () => {
             <div className="flex items-center">
               <CheckCircle className="h-8 w-8 text-upvote-success mr-4" />
               <span className="text-3xl font-bold">{user?.stats?.completed_orders || 0}</span>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Referral Earnings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center">
+              <Users className="h-8 w-8 text-upvote-primary mr-4" />
+              <div className="flex flex-col">
+                <span className="text-3xl font-bold">${(user?.referral_earnings || 0).toFixed(2)}</span>
+                <span className="text-xs text-gray-500">{user?.total_referrals || 0} referrals</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -160,6 +174,12 @@ const Dashboard = () => {
               <span className="text-gray-500">Credits Balance:</span>
               <span className="font-medium">{user?.credits.toFixed(2)} credits</span>
             </div>
+            {user?.my_referral_code && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">Referral Earnings:</span>
+                <span className="font-medium">${(user?.referral_earnings || 0).toFixed(2)}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
         
@@ -182,9 +202,15 @@ const Dashboard = () => {
             </div>
             <div className="bg-upvote-gray-100 p-3 rounded-md">
               <h3 className="font-medium mb-1">Referral Program</h3>
-              <p className="text-sm text-gray-600">
-                Invite friends and earn 10% of their first purchase.
+              <p className="text-sm text-gray-600 mb-2">
+                Invite friends and earn 10% of their spending.
               </p>
+              <Link 
+                to="/referral" 
+                className="text-sm text-upvote-primary hover:text-upvote-primary/80 font-medium"
+              >
+                View Referral Dashboard →
+              </Link>
             </div>
           </CardContent>
         </Card>

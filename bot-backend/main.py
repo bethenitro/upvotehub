@@ -82,7 +82,6 @@ async def get_system_limits() -> Dict[str, int]:
     return default_limits
 
 # Import the bot processor
-sys.path.append('/Users/nikanyad/Documents/UpVote/upvote-integration/upvotehub/backend')
 from script import UpvoteProcessor, UpvoteStatus
 
 app = FastAPI(
@@ -222,11 +221,26 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
         # Process the order
         result = bot_processor.process_order(order_data)
         
+        # Only fail immediately on validation errors or setup issues
+        # Let runtime errors be tracked through the status endpoint
         if not result.get("success"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=result.get("error", "Failed to process order")
-            )
+            error_msg = result.get("error", "Failed to process order")
+            # Check if this is a validation error (should fail immediately)
+            if any(keyword in error_msg.lower() for keyword in ["missing", "invalid", "field"]):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=error_msg
+                )
+            else:
+                # For runtime errors, still return success but let status endpoint track the failure
+                logger.warning(f"Order {order.order_id} started with potential issues: {error_msg}")
+                return OrderResponse(
+                    success=True,  # Return success to indicate order was accepted
+                    order_id=order.order_id,
+                    status="processing",  # Show as processing initially
+                    total_upvotes=order.upvotes,
+                    start_time=datetime.now().isoformat()
+                )
         
         logger.info(f"Order {order.order_id} started successfully")
         
@@ -234,7 +248,8 @@ async def create_order(order: OrderCreate, background_tasks: BackgroundTasks):
             success=result["success"],
             order_id=order.order_id,
             status=result["status"],
-            total_upvotes=order.upvotes
+            total_upvotes=order.upvotes,
+            start_time=datetime.now().isoformat()
         )
         
     except HTTPException:

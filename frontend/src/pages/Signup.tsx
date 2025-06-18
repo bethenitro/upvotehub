@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,12 +11,22 @@ const Signup: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
   const { signup } = useAuth();
   const navigate = useNavigate();
+
+  // Check for referral code in URL parameters
+  useEffect(() => {
+    const refParam = searchParams.get('ref');
+    if (refParam) {
+      setReferralCode(refParam);
+    }
+  }, [searchParams]);
 
   const validateForm = () => {
     let isValid = true;
@@ -49,7 +59,7 @@ const Signup: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const success = await signup(username, email, password);
+      const success = await signup(username, email, password, referralCode);
       if (success) {
         navigate('/dashboard');
       }
@@ -128,6 +138,24 @@ const Signup: React.FC = () => {
                 />
                 {passwordError && (
                   <p className="text-sm text-red-500 mt-1">{passwordError}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="referralCode" className="text-sm font-medium">
+                  Referral Code <span className="text-gray-500">(Optional)</span>
+                </label>
+                <Input
+                  id="referralCode"
+                  placeholder="Enter referral code"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  maxLength={12}
+                />
+                {referralCode && (
+                  <p className="text-xs text-upvote-primary">
+                    💰 You'll get $0.80 free credits with a valid referral code!
+                  </p>
                 )}
               </div>
               

@@ -32,6 +32,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     credits: float = 0.0
+    referral_code: Optional[str] = None
 
 class UserInDB(UserBase):
     id: str
@@ -40,12 +41,20 @@ class UserInDB(UserBase):
     joined_date: datetime = datetime.utcnow()
     last_login: Optional[datetime] = None
     payment_methods: Dict[str, bool] = {}  # payment_method_id: is_default
+    # Referral system fields
+    my_referral_code: str  # User's unique referral code
+    referred_by: Optional[str] = None  # ID of user who referred this user
+    referral_earnings: float = 0.0  # Total earnings from referrals
+    total_referrals: int = 0  # Number of users referred
 
 class User(UserBase):
     id: str
     credits: float
     joined_date: datetime
     last_login: Optional[datetime]
+    my_referral_code: str
+    referral_earnings: float = 0.0
+    total_referrals: int = 0
 
     class Config:
         from_attributes = True

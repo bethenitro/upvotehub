@@ -6,6 +6,7 @@ from ..utils.logger import logger
 from ..models.user import UserInDB, UserCreate, AccountActivity
 from ..models.payment import PaymentInDB
 from ..models.order import OrderInDB
+from .referral_service import ReferralService
 
 class UserService:
     @staticmethod
@@ -22,13 +23,30 @@ class UserService:
         if existing_username:
             raise ValueError("Username is already taken")
         
+        # Generate unique referral code for new user
+        my_referral_code = await ReferralService.create_unique_referral_code()
+        
+        # Check if they used a referral code
+        referrer_id = None
+        if user_data.referral_code:
+            referrer_id = await ReferralService.validate_referral_code(user_data.referral_code)
+        
+        # Set initial credits - bonus if referred
+        initial_credits = user_data.credits
+        if referrer_id:
+            initial_credits += 0.8  # $0.8 bonus for being referred
+        
         # Create user document
         user = UserInDB(
             id=str(ObjectId()),
             username=user_data.username,
             email=user_data.email,
-            credits=user_data.credits,
-            hashed_password=user_data.password  # Already hashed in auth route
+            credits=initial_credits,
+            hashed_password=user_data.password,  # Already hashed in auth route
+            my_referral_code=my_referral_code,
+            referred_by=referrer_id,
+            referral_earnings=0.0,
+            total_referrals=0
         )
         
         # Insert into database
@@ -39,7 +57,11 @@ class UserService:
         result = await db[Collections.USERS].insert_one(user_dict)
         user.id = str(result.inserted_id)
         
-        logger.info("user_created", user_id=str(user.id), email=user.email)
+        # Apply referral bonus if applicable
+        if referrer_id:
+            await ReferralService.apply_referral_bonus(user.id, referrer_id)
+        
+        logger.info("user_created", user_id=str(user.id), email=user.email, referred_by=referrer_id)
         return user
 
     @staticmethod

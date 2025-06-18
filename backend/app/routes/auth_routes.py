@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer
 from datetime import timedelta
 from pydantic import BaseModel, EmailStr
+from typing import Optional
 from ..models.user import User, UserCreate, UserInDB
 from ..services.user_service import UserService
 from ..utils.auth import authenticate_user, create_access_token, get_password_hash
@@ -20,6 +21,7 @@ class SignupRequest(BaseModel):
     username: str
     email: EmailStr
     password: str
+    referral_code: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -51,7 +53,10 @@ async def login(login_data: LoginRequest):
             "username": user.username,
             "email": user.email,
             "credits": user.credits,
-            "profileImage": str(user.profile_image) if user.profile_image else f"https://api.dicebear.com/7.x/avataaars/svg?seed={user.username}"
+            "profileImage": str(user.profile_image) if user.profile_image else f"https://api.dicebear.com/7.x/avataaars/svg?seed={user.username}",
+            "my_referral_code": getattr(user, 'my_referral_code', ''),
+            "referral_earnings": getattr(user, 'referral_earnings', 0.0),
+            "total_referrals": getattr(user, 'total_referrals', 0)
         }
 
         logger.info("user_logged_in", user_id=str(user.id), email=user.email)
@@ -99,7 +104,8 @@ async def signup(signup_data: SignupRequest):
             username=signup_data.username,
             email=signup_data.email,
             password=hashed_password,
-            credits=0.0
+            credits=0.0,
+            referral_code=signup_data.referral_code
         )
 
         user = await UserService.create_user(user_create)
@@ -116,7 +122,10 @@ async def signup(signup_data: SignupRequest):
             "username": user.username,
             "email": user.email,
             "credits": user.credits,
-            "profileImage": f"https://api.dicebear.com/7.x/avataaars/svg?seed={user.username}"
+            "profileImage": f"https://api.dicebear.com/7.x/avataaars/svg?seed={user.username}",
+            "my_referral_code": user.my_referral_code,
+            "referral_earnings": user.referral_earnings,
+            "total_referrals": user.total_referrals
         }
 
         logger.info("user_signed_up", user_id=str(user.id), email=user.email)

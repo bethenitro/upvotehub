@@ -10,6 +10,9 @@ interface User {
   credits: number;
   joinedDate: string;
   profileImage: string;
+  my_referral_code?: string;
+  referral_earnings?: number;
+  total_referrals?: number;
   stats: {
     total_orders: number;
     active_orders: number;

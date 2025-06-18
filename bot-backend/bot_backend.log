@@ -110,3 +110,85 @@
 2025-06-17 21:18:30,854 - INFO - script - Completed restart recovery process
 2025-06-17 21:18:30,859 - INFO - main - Bot backend starting up...
 2025-06-17 21:18:30,859 - INFO - main - Bot backend startup completed
+2025-06-17 22:25:00,553 - INFO - order_history - Created new order history file: order_history.json
+2025-06-17 22:25:00,554 - INFO - script - Completed restart recovery process
+2025-06-17 22:25:00,559 - INFO - main - Bot backend starting up...
+2025-06-17 22:25:00,559 - INFO - main - Bot backend startup completed
+2025-06-17 22:25:08,059 - INFO - script - Completed restart recovery process
+2025-06-17 22:25:08,065 - INFO - main - Bot backend starting up...
+2025-06-17 22:25:08,065 - INFO - main - Bot backend startup completed
+2025-06-17 22:25:56,928 - INFO - script - Completed restart recovery process
+2025-06-17 22:25:56,934 - INFO - main - Bot backend starting up...
+2025-06-17 22:25:56,934 - INFO - main - Bot backend startup completed
+2025-06-17 22:26:09,414 - INFO - script - Completed restart recovery process
+2025-06-17 22:26:09,419 - INFO - main - Bot backend starting up...
+2025-06-17 22:26:09,420 - INFO - main - Bot backend startup completed
+2025-06-17 22:30:31,181 - INFO - script - Completed restart recovery process
+2025-06-17 22:30:31,186 - INFO - main - Bot backend starting up...
+2025-06-17 22:30:31,186 - INFO - main - Bot backend startup completed
+2025-06-17 22:31:27,540 - INFO - script - Completed restart recovery process
+2025-06-17 22:31:27,545 - INFO - main - Bot backend starting up...
+2025-06-17 22:31:27,545 - INFO - main - Bot backend startup completed
+2025-06-17 22:32:48,306 - INFO - script - Completed restart recovery process
+2025-06-17 22:32:48,311 - INFO - main - Bot backend starting up...
+2025-06-17 22:32:48,312 - INFO - main - Bot backend startup completed
+2025-06-17 22:33:23,653 - INFO - script - Completed restart recovery process
+2025-06-17 22:33:23,658 - INFO - main - Bot backend starting up...
+2025-06-17 22:33:23,658 - INFO - main - Bot backend startup completed
+2025-06-17 22:33:41,185 - INFO - script - Completed restart recovery process
+2025-06-17 22:33:41,190 - INFO - main - Bot backend starting up...
+2025-06-17 22:33:41,190 - INFO - main - Bot backend startup completed
+2025-06-17 22:33:55,475 - INFO - script - Completed restart recovery process
+2025-06-17 22:33:55,480 - INFO - main - Bot backend starting up...
+2025-06-17 22:33:55,480 - INFO - main - Bot backend startup completed
+2025-06-17 22:34:02,343 - INFO - script - Completed restart recovery process
+2025-06-17 22:34:02,348 - INFO - main - Bot backend starting up...
+2025-06-17 22:34:02,348 - INFO - main - Bot backend startup completed
+2025-06-17 22:34:30,594 - INFO - script - Completed restart recovery process
+2025-06-17 22:34:30,599 - INFO - main - Bot backend starting up...
+2025-06-17 22:34:30,599 - INFO - main - Bot backend startup completed
+2025-06-17 22:36:13,533 - INFO - main - Received new order: 6851a085e1450db95946bbe8 for URL: https://www.reddit.com/r/tennis/comments/1ldggsl/katie_boulter_opening_up_on_online_abuse_linked/
+2025-06-17 22:36:13,600 - INFO - httpx - HTTP Request: GET http://localhost:8000/api/orders/internal/limits "HTTP/1.1 200 OK"
+2025-06-17 22:36:13,600 - INFO - main - Fetched system limits: {'min_upvotes': 1, 'max_upvotes': 600, 'min_upvotes_per_minute': 1, 'max_upvotes_per_minute': 10}
+2025-06-17 22:36:13,601 - INFO - order_history - Added order 6851a085e1450db95946bbe8 to history
+2025-06-17 22:36:13,602 - INFO - main - Order 6851a085e1450db95946bbe8 started successfully
+2025-06-17 22:39:39,718 - INFO - order_history - Marked order 6851a085e1450db95946bbe8 as failed due to restart
+2025-06-17 22:39:39,718 - WARNING - script - Marked order 6851a085e1450db95946bbe8 as failed due to restart (was running)
+2025-06-17 22:39:39,718 - INFO - script - Completed restart recovery process
+2025-06-17 22:39:39,724 - INFO - main - Bot backend starting up...
+2025-06-17 22:39:39,724 - INFO - main - Bot backend startup completed
+2025-06-17 22:54:43,739 - INFO - script - Completed restart recovery process
+2025-06-17 22:54:43,744 - INFO - main - Bot backend starting up...
+2025-06-17 22:54:43,744 - INFO - main - Bot backend startup completed
+2025-06-17 22:56:21,651 - INFO - main - Received new order: 6851a53d346c6ef0030a8fb5 for URL: https://www.reddit.com/r/tennis/comments/1e77wod/katie_boulter_must_have_known_this_photoshoot_was/
+2025-06-17 22:56:21,704 - INFO - httpx - HTTP Request: GET http://localhost:8000/api/orders/internal/limits "HTTP/1.1 200 OK"
+2025-06-17 22:56:21,704 - INFO - main - Fetched system limits: {'min_upvotes': 1, 'max_upvotes': 600, 'min_upvotes_per_minute': 1, 'max_upvotes_per_minute': 10}
+2025-06-17 22:56:21,705 - INFO - order_history - Added order 6851a53d346c6ef0030a8fb5 to history
+2025-06-17 22:56:21,706 - INFO - main - Order 6851a53d346c6ef0030a8fb5 started successfully
+2025-06-17 22:57:58,090 - INFO - order_history - Marked order 6851a53d346c6ef0030a8fb5 as failed due to restart
+2025-06-17 22:57:58,090 - WARNING - script - Marked order 6851a53d346c6ef0030a8fb5 as failed due to restart (was running)
+2025-06-17 22:57:58,090 - INFO - script - Completed restart recovery process
+2025-06-17 22:57:58,095 - INFO - main - Bot backend starting up...
+2025-06-17 22:57:58,095 - INFO - main - Bot backend startup completed
+2025-06-17 22:59:43,845 - INFO - main - Received new order: 6851a607346c6ef0030a9032 for URL: https://www.reddit.com/r/worldnews/comments/1la27h6/israel_launches_preemptive_strike_against_iran/
+2025-06-17 22:59:43,897 - INFO - httpx - HTTP Request: GET http://localhost:8000/api/orders/internal/limits "HTTP/1.1 200 OK"
+2025-06-17 22:59:43,897 - INFO - main - Fetched system limits: {'min_upvotes': 1, 'max_upvotes': 600, 'min_upvotes_per_minute': 1, 'max_upvotes_per_minute': 10}
+2025-06-17 22:59:43,898 - INFO - order_history - Added order 6851a607346c6ef0030a9032 to history
+2025-06-17 22:59:43,899 - INFO - main - Order 6851a607346c6ef0030a9032 started successfully
+2025-06-17 23:08:47,369 - INFO - script - Completed restart recovery process
+2025-06-17 23:08:47,374 - INFO - main - Bot backend starting up...
+2025-06-17 23:08:47,374 - INFO - main - Bot backend startup completed
+2025-06-18 03:15:00,236 - INFO - script - Completed restart recovery process
+2025-06-18 03:15:00,243 - INFO - main - Bot backend starting up...
+2025-06-18 03:15:00,243 - INFO - main - Bot backend startup completed
+2025-06-18 17:40:58,015 - INFO - script - Completed restart recovery process
+2025-06-18 17:40:58,021 - INFO - main - Bot backend starting up...
+2025-06-18 17:40:58,021 - INFO - main - Bot backend startup completed
+2025-06-18 18:12:59,745 - INFO - script - Completed restart recovery process
+2025-06-18 18:12:59,750 - INFO - main - Bot backend starting up...
+2025-06-18 18:12:59,750 - INFO - main - Bot backend startup completed
+2025-06-18 18:34:22,943 - INFO - main - Received new order: 6852b956b5b56f627b673b7d for URL: https://www.reddit.com/r/CarsIndia/comments/1leerdb/kerala_boys_mimic_tata_harrier_ev_ad_drive_alto/
+2025-06-18 18:34:23,008 - INFO - httpx - HTTP Request: GET http://localhost:8000/api/orders/internal/limits "HTTP/1.1 200 OK"
+2025-06-18 18:34:23,008 - INFO - main - Fetched system limits: {'min_upvotes': 1, 'max_upvotes': 600, 'min_upvotes_per_minute': 1, 'max_upvotes_per_minute': 10}
+2025-06-18 18:34:23,009 - INFO - order_history - Added order 6852b956b5b56f627b673b7d to history
+2025-06-18 18:34:23,010 - INFO - main - Order 6852b956b5b56f627b673b7d started successfully

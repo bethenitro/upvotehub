@@ -88,7 +88,7 @@ class UpvoteProcessor:
                 return {
                     "success": False,
                     "status": "failed",
-                    "error": "Invalid upvote parameters",
+                    "error": "Invalid upvote parameters: upvotes and upvotes_per_minute must be greater than 0",
                     "upvotes_done": 0,
                     "progress_percentage": 0
                 }
@@ -107,14 +107,49 @@ class UpvoteProcessor:
             
             self.sessions[order_id] = session
             
-            # Start processing
-            return self._start_upvote_processing(order_id)
+            # Start processing - always return success for order acceptance
+            # Runtime errors will be tracked in the session status
+            try:
+                result = self._start_upvote_processing(order_id)
+                # Always return success for order acceptance, runtime issues tracked separately
+                return {
+                    "success": True,
+                    "status": "processing",
+                    "order_id": order_id,
+                    "upvotes_done": 0,
+                    "total_upvotes": total_upvotes,
+                    "progress_percentage": 0
+                }
+            except Exception as e:
+                # Mark session as failed but still return success for order acceptance
+                session.status = UpvoteStatus.FAILED
+                session.error_message = f"Failed to start processing: {str(e)}"
+                session.last_update = datetime.now().isoformat()
+                return {
+                    "success": True,  # Order was accepted
+                    "status": "failed",
+                    "order_id": order_id,
+                    "upvotes_done": 0,
+                    "total_upvotes": total_upvotes,
+                    "progress_percentage": 0,
+                    "error": session.error_message
+                }
             
-        except Exception as e:
+        except ValueError as e:
+            # Validation errors should still fail immediately
             return {
                 "success": False,
                 "status": "failed",
-                "error": f"Processing error: {str(e)}",
+                "error": f"Validation error: {str(e)}",
+                "upvotes_done": 0,
+                "progress_percentage": 0
+            }
+        except Exception as e:
+            # Unexpected errors in setup should fail immediately
+            return {
+                "success": False,
+                "status": "failed",
+                "error": f"Setup error: {str(e)}",
                 "upvotes_done": 0,
                 "progress_percentage": 0
             }
@@ -139,23 +174,41 @@ class UpvoteProcessor:
             }
         
         session = self.sessions[order_id]
-        session.status = UpvoteStatus.RUNNING
-        session.last_update = datetime.now().isoformat()
         
-        # Start processing in a thread
-        thread = threading.Thread(target=self._upvote_worker, args=(order_id,))
-        thread.daemon = True
-        self.active_threads[order_id] = thread
-        thread.start()
-        
-        return {
-            "success": True,
-            "status": session.status.value,
-            "upvotes_done": session.upvotes_done,
-            "total_upvotes": session.total_upvotes,
-            "progress_percentage": session.progress_percentage,
-            "order_id": order_id
-        }
+        try:
+            session.status = UpvoteStatus.RUNNING
+            session.last_update = datetime.now().isoformat()
+            
+            # Start processing in a thread
+            thread = threading.Thread(target=self._upvote_worker, args=(order_id,))
+            thread.daemon = True
+            self.active_threads[order_id] = thread
+            thread.start()
+            
+            return {
+                "success": True,
+                "status": session.status.value,
+                "upvotes_done": session.upvotes_done,
+                "total_upvotes": session.total_upvotes,
+                "progress_percentage": session.progress_percentage,
+                "order_id": order_id
+            }
+            
+        except Exception as e:
+            # Update session with error but don't fail the initial response
+            session.status = UpvoteStatus.FAILED
+            session.error_message = f"Failed to start processing thread: {str(e)}"
+            session.last_update = datetime.now().isoformat()
+            
+            return {
+                "success": True,  # Still success for order acceptance
+                "status": session.status.value,
+                "upvotes_done": session.upvotes_done,
+                "total_upvotes": session.total_upvotes,
+                "progress_percentage": session.progress_percentage,
+                "order_id": order_id,
+                "error": session.error_message
+            }
     
     def _upvote_worker(self, order_id: str):
         """

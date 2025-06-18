@@ -11,6 +11,7 @@ from ..utils.logger import logger
 from ..models.order import OrderInDB, Order, OrderCreate
 from ..utils.exceptions import OrderProcessingError
 from ..utils.validators import validate_upvotes, validate_upvotes_per_minute
+from .referral_service import ReferralService
 
 settings = get_settings()
 
@@ -37,6 +38,9 @@ class OrderService:
         
         if user_result.modified_count == 0:
             raise OrderProcessingError("Insufficient credits or user not found")
+        
+        # Process referral commission for the spent amount
+        await ReferralService.process_referral_commission(user_id, cost)
         
         # Create order document
         order_dict = {

@@ -5,6 +5,7 @@ from ..config.database import Database, Collections
 from ..utils.logger import logger
 from ..utils.exceptions import PaymentProcessingError, InvalidPaymentMethodError
 from .cryptomus_service import get_cryptomus_service
+from .referral_service import ReferralService
 from bson import ObjectId
 
 class PaymentService:
@@ -295,10 +296,16 @@ class PaymentService:
     
     @staticmethod
     async def _add_credits_to_user(user_id: str, amount: float) -> bool:
-        """Add credits to user account"""
+        """Add credits to user account and process referral commission"""
         try:
             from ..services.user_service import UserService
-            return await UserService.update_credits(user_id, amount)
+            result = await UserService.update_credits(user_id, amount)
+            
+            # Process referral commission if user was referred
+            if result:
+                await ReferralService.process_referral_commission(user_id, amount)
+            
+            return result
         except Exception as e:
             logger.error("add_credits_failed", user_id=user_id, amount=amount, error=str(e))
             return False

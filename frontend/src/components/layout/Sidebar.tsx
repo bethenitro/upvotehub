@@ -9,7 +9,8 @@ import {
   CreditCard,
   Wallet,
   HelpCircle,
-  Settings
+  Settings,
+  Users
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -74,6 +75,10 @@ const Sidebar = () => {
             <NavLink to="/account/topup" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
               <Wallet size={18} />
               <span>Top Up Account</span>
+            </NavLink>
+            <NavLink to="/referral" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              <Users size={18} />
+              <span>Referral Program</span>
             </NavLink>
           </>
         )}

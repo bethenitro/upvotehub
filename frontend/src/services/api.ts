@@ -60,13 +60,18 @@ export const api = {
     /**
      * Register new user
      */
-    signup: async (username: string, email: string, password: string) => {
+    signup: async (username: string, email: string, password: string, referralCode?: string) => {
+      const body: any = { username, email, password };
+      if (referralCode) {
+        body.referral_code = referralCode;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -747,6 +752,71 @@ export const api = {
         return await response.json();
       } catch (error) {
         console.error('Error updating system settings:', error);
+        throw error;
+      }
+    }
+  },
+
+  // Referral endpoints
+  referral: {
+    /**
+     * Get referral statistics
+     */
+    getStats: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/referral/stats`, {
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch referral stats');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching referral stats:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Validate a referral code
+     */
+    validateCode: async (referralCode: string) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/referral/validate`, {
+          method: 'POST',
+          headers: createHeaders(),
+          body: JSON.stringify({ referral_code: referralCode }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to validate referral code');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error validating referral code:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Get my referral code and link
+     */
+    getMyCode: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/referral/my-code`, {
+          headers: createHeaders(),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch referral code');
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching referral code:', error);
         throw error;
       }
     }
