@@ -16,7 +16,7 @@ from ..utils.logger import logger
 
 router = APIRouter()
 
-@router.post("/", response_model=Payment)
+@router.post("/create", response_model=Payment)
 async def create_payment(
     payment: PaymentCreate,
     current_user: User = Depends(get_current_user)
@@ -43,7 +43,7 @@ async def create_payment(
     except Exception as e:
         raise PaymentProcessingError(str(e))
 
-@router.get("/", response_model=List[Payment])
+@router.get("/list", response_model=List[Payment])
 async def get_payments(current_user: User = Depends(get_current_user)):
     """Get user's payments"""
     return await PaymentService.get_user_payments(current_user.id)

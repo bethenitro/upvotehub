@@ -241,7 +241,7 @@ export const api = {
      */
     getOrders: async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/orders`, {
+        const response = await fetch(`${API_BASE_URL}/api/orders/list`, {
           headers: createHeaders(),
         });
 
@@ -272,7 +272,7 @@ export const api = {
       upvotesPerMinute?: number,
     }) => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/orders`, {
+        const response = await fetch(`${API_BASE_URL}/api/orders/create`, {
           method: 'POST',
           headers: createHeaders(),
           body: JSON.stringify({
@@ -323,7 +323,7 @@ export const api = {
      */
     getPayments: async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/payments`, {
+        const response = await fetch(`${API_BASE_URL}/api/payments/list`, {
           headers: createHeaders(),
         });
 
@@ -343,7 +343,7 @@ export const api = {
      */
     createCryptoPayment: async (amount: number, paymentDetails: any) => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/payments`, {
+        const response = await fetch(`${API_BASE_URL}/api/payments/create`, {
           method: 'POST',
           headers: createHeaders(),
           body: JSON.stringify({

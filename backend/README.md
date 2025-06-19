@@ -46,13 +46,13 @@ Once the server is running, you can access:
 - `GET /api/users/validate-reddit-url` - Validate Reddit URL
 
 ### Order Endpoints
-- `GET /api/orders` - Get user's orders
-- `POST /api/orders` - Create new order
+- `GET /api/orders/list` - Get user's orders
+- `POST /api/orders/create` - Create new order
 - `GET /api/orders/payment-methods` - Get user's payment methods
 
 ### Payment Endpoints
-- `GET /api/payments` - Get user's payment history
-- `POST /api/payments` - Create new payment
+- `GET /api/payments/list` - Get user's payment history
+- `POST /api/payments/create` - Create new payment
 - `POST /api/payments/methods` - Add new payment method
 - `POST /api/payments/cryptomus/webhook` - Handle Cryptomus webhook notifications
 - `GET /api/payments/crypto/supported-methods` - Get supported cryptocurrencies

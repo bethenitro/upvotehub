@@ -9,7 +9,7 @@ from ..utils.logger import logger
 
 router = APIRouter(prefix="/api/orders", tags=["orders"])
 
-@router.get("", response_model=List[Order])
+@router.get("/list", response_model=List[Order])
 async def get_orders(current_user: User = Depends(get_current_user)):
     """Get user's orders"""
     orders = await OrderService.get_user_orders(current_user.id)
@@ -19,7 +19,7 @@ async def get_orders(current_user: User = Depends(get_current_user)):
 async def get_orders_history():
     return await get_orders()
 
-@router.post("")
+@router.post("/create")
 async def create_order(order_data: Dict[str, Any], current_user: User = Depends(get_current_user)):
     try:
         order = await OrderService.create_order(current_user.id, order_data)

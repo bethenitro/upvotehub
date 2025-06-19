@@ -18,7 +18,7 @@ from ..utils.validators import validate_reddit_url, validate_payment_amount
 
 router = APIRouter()
 
-@router.post("/", response_model=Order)
+@router.post("/create", response_model=Order)
 async def create_order(
     order: OrderCreate,
     current_user: User = Depends(get_current_user)
@@ -66,7 +66,7 @@ async def create_order(
         )
         raise OrderProcessingError(str(e))
 
-@router.get("/", response_model=List[Order])
+@router.get("/list", response_model=List[Order])
 async def get_orders(current_user: User = Depends(get_current_user)):
     """Get user's orders"""
     return await OrderService.get_user_orders(current_user.id)
