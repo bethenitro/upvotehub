@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { CheckCircle, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface OrderLimits {
@@ -27,6 +28,7 @@ const NewOrder = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [isReorder, setIsReorder] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [orderLimits, setOrderLimits] = useState<OrderLimits>({
     min_upvotes: 1,
     max_upvotes: 1000,
@@ -119,8 +121,14 @@ const NewOrder = () => {
       return;
     }
     
+    // Show confirmation dialog first
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmOrder = async () => {
     try {
       setIsSubmitting(true);
+      setShowConfirmation(false);
       
       const result = await api.orders.createOrder({
         redditUrl,
@@ -237,7 +245,7 @@ const NewOrder = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form id="order-form" onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <label htmlFor="reddit-url" className="text-sm font-medium">
                     Reddit Post URL
@@ -323,7 +331,7 @@ const NewOrder = () => {
                 <p className="text-sm text-gray-500">Cost:</p>
                 <p className="text-xl font-bold">{cost.toFixed(2)} credits</p>
               </div>
-              <Button onClick={handleSubmit} disabled={isSubmitting || !hasEnoughCredits || loadingLimits}>
+              <Button type="submit" form="order-form" disabled={isSubmitting || !hasEnoughCredits || loadingLimits}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -396,6 +404,74 @@ const NewOrder = () => {
           </Card>
         </div>
       </div>
+
+      {/* Order Confirmation Dialog */}
+      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              Confirm Your Order
+            </DialogTitle>
+            <DialogDescription>
+              Please review your order details before confirming.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-md space-y-3">
+              <div className="space-y-1">
+                <span className="text-sm font-medium text-gray-600">Reddit URL:</span>
+                <div className="bg-white p-2 rounded border text-sm font-mono break-all">{redditUrl}</div>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-600">Upvotes:</span>
+                <span className="text-sm font-semibold">{upvotes}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-600">Delivery Rate:</span>
+                <span className="text-sm font-semibold">{upvotesPerMinute} per minute</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-600">Order Type:</span>
+                <span className="text-sm font-semibold">One-time</span>
+              </div>
+              <hr className="my-2" />
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-600">Total Cost:</span>
+                <span className="text-sm font-bold text-lg">{cost.toFixed(2)} credits</span>
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 p-3 rounded-md">
+              <div className="flex justify-between text-sm">
+                <span className="text-blue-700">Your Balance:</span>
+                <span className="font-medium text-blue-700">{user?.credits.toFixed(2) || 0} credits</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-blue-700">After Order:</span>
+                <span className="font-medium text-blue-700">{user ? (user.credits - cost).toFixed(2) : '0'} credits</span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowConfirmation(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmOrder} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Placing Order...
+                </>
+              ) : (
+                'Confirm & Place Order'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
